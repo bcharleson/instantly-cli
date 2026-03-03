@@ -529,11 +529,21 @@ function registerCommand(parent: Command, cmdDef: CommandDefinition): void {
         }
       }
 
-      // Parse numeric fields
+      // Validate input against schema
       const parsed = cmdDef.inputSchema.safeParse(input);
-      const validInput = parsed.success ? parsed.data : input;
+      if (!parsed.success) {
+        const issues = parsed.error.issues ?? [];
+        const missing = issues
+          .filter((i: any) => i.code === 'invalid_type' && String(i.message).includes('received undefined'))
+          .map((i: any) => '--' + String(i.path?.[0] ?? '').replace(/_/g, '-'));
+        if (missing.length > 0) {
+          throw new Error(`Missing required option(s): ${missing.join(', ')}`);
+        }
+        const msg = issues.map((i: any) => `${i.path?.join('.')}: ${i.message}`).join('; ');
+        throw new Error(`Invalid input: ${msg}`);
+      }
 
-      const result = await cmdDef.handler(validInput, client);
+      const result = await cmdDef.handler(parsed.data, client);
       output(result, globalOpts);
     } catch (error) {
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions;
