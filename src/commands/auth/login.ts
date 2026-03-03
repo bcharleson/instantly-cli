@@ -1,5 +1,4 @@
 import { Command } from 'commander';
-import { input as promptInput, password } from '@inquirer/prompts';
 import { InstantlyClient } from '../../core/client.js';
 import { saveConfig } from '../../core/config.js';
 import { output, outputError } from '../../core/output.js';
@@ -28,6 +27,15 @@ export function registerLoginCommand(program: Command): void {
 
           console.log('Get your API key from: https://app.instantly.ai/app/settings/integrations\n');
 
+          const [major] = process.versions.node.split('.').map(Number);
+          if (major < 20) {
+            outputError(
+              new Error('Interactive login requires Node.js 20+. Use --api-key or set INSTANTLY_API_KEY instead.'),
+              globalOpts,
+            );
+            return;
+          }
+          const { password } = await import('@inquirer/prompts');
           apiKey = await password({
             message: 'Enter your API key:',
             mask: '*',

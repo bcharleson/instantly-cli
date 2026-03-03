@@ -1,5 +1,4 @@
 import { Command } from 'commander';
-import { select } from '@inquirer/prompts';
 import { InstantlyClient } from '../../core/client.js';
 import { resolveApiKey } from '../../core/auth.js';
 import { output, outputError } from '../../core/output.js';
@@ -69,6 +68,15 @@ export function registerOAuthCommand(program: Command): void {
 
         let provider = providerArg;
         if (!provider && isTTY) {
+          const [major] = process.versions.node.split('.').map(Number);
+          if (major < 20) {
+            outputError(
+              new Error('Interactive OAuth provider selection requires Node.js 20+. Pass the provider argument instead: instantly oauth connect google'),
+              globalOpts,
+            );
+            return;
+          }
+          const { select } = await import('@inquirer/prompts');
           provider = await select({
             message: 'Select OAuth provider:',
             choices: [

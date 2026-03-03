@@ -1,6 +1,6 @@
 {
   "name": "instantly-cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "CLI and MCP server for the Instantly.ai cold email platform",
   "type": "module",
   "bin": {
@@ -36,7 +36,7 @@
   "author": "Instantly.ai",
   "license": "MIT",
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=18.0.0"
   },
   "dependencies": {
     "@inquirer/prompts": "^8.3.0",
