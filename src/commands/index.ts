@@ -465,6 +465,14 @@ export function registerAllCommands(program: Command): void {
     for (const cmdDef of commands) {
       registerCommand(groupCmd, cmdDef);
     }
+
+    // Show available subcommands when an unknown one is used
+    groupCmd.on('command:*', (operands: string[]) => {
+      const available = commands.map((c) => c.subcommand).join(', ');
+      console.error(`error: unknown command '${operands[0]}' for '${groupName}'`);
+      console.error(`Available commands: ${available}`);
+      process.exitCode = 1;
+    });
   }
 }
 
