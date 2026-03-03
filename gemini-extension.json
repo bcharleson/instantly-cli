@@ -1,0 +1,15 @@
+{
+  "name": "instantly",
+  "version": "0.1.0",
+  "description": "Full access to the Instantly.ai cold email platform — manage campaigns, leads, email accounts, analytics, webhooks, and more through 92 MCP tools.",
+  "contextFileName": "INSTANTLY.md",
+  "mcpServers": {
+    "instantly": {
+      "command": "npx",
+      "args": ["-y", "instantly-cli@latest", "mcp"],
+      "env": {
+        "INSTANTLY_API_KEY": "${INSTANTLY_API_KEY}"
+      }
+    }
+  }
+}

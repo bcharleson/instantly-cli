@@ -1,0 +1,54 @@
+{
+  "name": "instantly-cli",
+  "version": "0.1.0",
+  "description": "CLI and MCP server for the Instantly.ai cold email platform",
+  "type": "module",
+  "bin": {
+    "instantly": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "install.sh",
+    "gemini-extension.json",
+    "INSTANTLY.md"
+  ],
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsup",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "instantly",
+    "cold-email",
+    "sales-automation",
+    "outbound",
+    "email-outreach",
+    "cli",
+    "mcp",
+    "ai-agent",
+    "lead-generation",
+    "campaign-management"
+  ],
+  "author": "Instantly.ai",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "@inquirer/prompts": "^8.3.0",
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "commander": "^14.0.3",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.3",
+    "tsup": "^8.5.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}
