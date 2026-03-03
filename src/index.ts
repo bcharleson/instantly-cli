@@ -6,7 +6,7 @@ const program = new Command();
 program
   .name('instantly')
   .description('CLI and MCP server for the Instantly.ai cold email platform')
-  .version('0.1.4')
+  .version('0.1.5')
   .option('--api-key <key>', 'API key (overrides INSTANTLY_API_KEY env var and stored config)')
   .option('--output <format>', 'Output format: json (default) or pretty', 'json')
   .option('--quiet', 'Suppress output, exit codes only')

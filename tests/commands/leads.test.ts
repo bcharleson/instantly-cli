@@ -3,6 +3,7 @@ import { leadsListCommand } from '../../src/commands/leads/list.js';
 import { leadsCreateCommand } from '../../src/commands/leads/create.js';
 import { leadsBulkAddCommand } from '../../src/commands/leads/bulk-add.js';
 import { leadsMoveCommand } from '../../src/commands/leads/move.js';
+import { leadsSubsequenceMoveCommand } from '../../src/commands/leads/subsequence-move.js';
 
 describe('Lead CommandDefinitions', () => {
   it('leads_list uses POST method (API quirk)', () => {
@@ -31,5 +32,12 @@ describe('Lead CommandDefinitions', () => {
     expect(leadsMoveCommand.endpoint.method).toBe('POST');
     expect(leadsMoveCommand.fieldMappings.lead_ids).toBe('body');
     expect(leadsMoveCommand.fieldMappings.to_campaign_id).toBe('body');
+  });
+
+  it('leads_subsequence_move sends lead_ids and subsequence_id in body', () => {
+    expect(leadsSubsequenceMoveCommand.endpoint.method).toBe('POST');
+    expect(leadsSubsequenceMoveCommand.endpoint.path).toBe('/leads/subsequence/move');
+    expect(leadsSubsequenceMoveCommand.fieldMappings.lead_ids).toBe('body');
+    expect(leadsSubsequenceMoveCommand.fieldMappings.subsequence_id).toBe('body');
   });
 });

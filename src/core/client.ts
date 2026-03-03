@@ -50,7 +50,7 @@ export class InstantlyClient implements IInstantlyClient {
 
     const headers: Record<string, string> = {
       Authorization: `Bearer ${this.apiKey}`,
-      'User-Agent': 'instantly-cli/0.1.0',
+      'User-Agent': 'instantly-cli/0.1.4',
     };
 
     if (options.body !== undefined) {
@@ -123,13 +123,29 @@ export class InstantlyClient implements IInstantlyClient {
         }
       } catch (error) {
         if (error instanceof InstantlyError) throw error;
-        if (error instanceof DOMException && error.name === 'AbortError') {
-          lastError = new InstantlyError('Request timed out', 'TIMEOUT');
+
+        // Detect AbortError across Node versions (DOMException in Node 20+, plain Error in Node 18)
+        const isAbort =
+          error instanceof Error &&
+          (error.name === 'AbortError' || String(error.message).includes('aborted'));
+
+        if (isAbort) {
+          lastError = new InstantlyError(
+            `Request timed out after ${this.timeout / 1000}s: ${options.method} ${options.path}`,
+            'TIMEOUT',
+          );
           if (attempt < this.maxRetries) {
             await sleep(Math.min(1000 * Math.pow(2, attempt), 10_000));
             continue;
           }
+          throw lastError;
         }
+
+        // Network errors (DNS, connection refused, etc.)
+        if (error instanceof TypeError && String(error.message).includes('fetch')) {
+          throw new InstantlyError(`Network error: ${error.message}`, 'NETWORK_ERROR');
+        }
+
         throw error;
       }
     }

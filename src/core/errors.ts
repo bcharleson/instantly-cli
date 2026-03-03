@@ -52,6 +52,14 @@ export function formatError(error: unknown): { message: string; code: string } {
     return { message: error.message, code: error.code };
   }
   if (error instanceof Error) {
+    // Detect abort/timeout errors that weren't caught as InstantlyError
+    if (error.name === 'AbortError' || String(error.message).includes('aborted')) {
+      return { message: 'Request timed out — the API did not respond in time', code: 'TIMEOUT' };
+    }
+    // Detect network errors
+    if (error.message.includes('ECONNREFUSED') || error.message.includes('ENOTFOUND')) {
+      return { message: `Network error: ${error.message}`, code: 'NETWORK_ERROR' };
+    }
     return { message: error.message, code: 'UNKNOWN_ERROR' };
   }
   return { message: String(error), code: 'UNKNOWN_ERROR' };
