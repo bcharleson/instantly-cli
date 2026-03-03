@@ -30,8 +30,9 @@ describe('Account CommandDefinitions', () => {
     expect(accountsWarmupEnableCommand.fieldMappings.account_ids).toBe('body');
   });
 
-  it('accounts_test_vitals sends POST with id in path', () => {
+  it('accounts_test_vitals sends POST with email in body', () => {
     expect(accountsTestVitalsCommand.endpoint.method).toBe('POST');
-    expect(accountsTestVitalsCommand.endpoint.path).toBe('/accounts/{id}/test-vitals');
+    expect(accountsTestVitalsCommand.endpoint.path).toBe('/accounts/test/vitals');
+    expect(accountsTestVitalsCommand.fieldMappings.email).toBe('body');
   });
 });

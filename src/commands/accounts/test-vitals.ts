@@ -12,15 +12,15 @@ export const accountsTestVitalsCommand: CommandDefinition = {
   ],
 
   inputSchema: z.object({
-    id: z.string().describe('Account ID to test'),
+    email: z.string().describe('Email address of the account to test'),
   }),
 
   cliMappings: {
-    args: [{ field: 'id', name: 'id', required: true }],
+    args: [{ field: 'email', name: 'email', required: true }],
   },
 
-  endpoint: { method: 'POST', path: '/accounts/{id}/test-vitals' },
-  fieldMappings: { id: 'path' },
+  endpoint: { method: 'POST', path: '/accounts/test/vitals' },
+  fieldMappings: { email: 'body' },
 
   handler: (input, client) => executeCommand(accountsTestVitalsCommand, input, client),
 };

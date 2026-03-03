@@ -7,11 +7,11 @@ export const leadLabelsCreateCommand: CommandDefinition = {
   group: 'lead-labels',
   subcommand: 'create',
   description: 'Create a new lead label for categorizing leads.',
-  examples: ['instantly lead-labels create --label "Hot Lead" --interest-status "Interested"'],
+  examples: ['instantly lead-labels create --label "Hot Lead" --interest-status positive'],
 
   inputSchema: z.object({
     label: z.string().describe('Display label'),
-    interest_status_label: z.string().describe('Interest status: "positive", "negative", or "neutral"'),
+    interest_status_label: z.enum(['positive', 'negative', 'neutral']).describe('Interest status: positive, negative, or neutral'),
     description: z.string().optional().describe('Description of the label purpose'),
     use_with_ai: z.boolean().optional().describe('Use with AI features'),
   }),

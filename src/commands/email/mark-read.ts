@@ -17,7 +17,7 @@ export const emailMarkReadCommand: CommandDefinition = {
     args: [{ field: 'thread_id', name: 'thread-id', required: true }],
   },
 
-  endpoint: { method: 'POST', path: '/emails/{thread_id}/mark-read' },
+  endpoint: { method: 'POST', path: '/emails/threads/{thread_id}/mark-as-read' },
   fieldMappings: { thread_id: 'path' },
   handler: (input, client) => executeCommand(emailMarkReadCommand, input, client),
 };

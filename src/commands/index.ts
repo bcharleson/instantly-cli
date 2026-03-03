@@ -34,6 +34,7 @@ import { leadsMergeCommand } from './leads/merge.js';
 import { leadsUpdateInterestStatusCommand } from './leads/update-interest-status.js';
 import { leadsRemoveFromSubsequenceCommand } from './leads/remove-from-subsequence.js';
 import { leadsBulkAssignCommand } from './leads/bulk-assign.js';
+import { leadsSubsequenceMoveCommand } from './leads/subsequence-move.js';
 
 import { accountsListCommand } from './accounts/list.js';
 import { accountsGetCommand } from './accounts/get.js';
@@ -266,6 +267,7 @@ export const allCommands: CommandDefinition[] = [
   leadsUpdateInterestStatusCommand,
   leadsRemoveFromSubsequenceCommand,
   leadsBulkAssignCommand,
+  leadsSubsequenceMoveCommand,
   // Accounts
   accountsListCommand,
   accountsGetCommand,

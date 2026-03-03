@@ -12,7 +12,7 @@ export const leadLabelsUpdateCommand: CommandDefinition = {
   inputSchema: z.object({
     id: z.string().describe('Lead label ID'),
     label: z.string().optional().describe('New display label'),
-    interest_status_label: z.string().optional().describe('New interest status label'),
+    interest_status_label: z.enum(['positive', 'negative', 'neutral']).optional().describe('Interest status: positive, negative, or neutral'),
     description: z.string().optional().describe('New description'),
     use_with_ai: z.boolean().optional().describe('Use with AI features'),
   }),
