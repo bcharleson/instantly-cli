@@ -39,6 +39,38 @@ describe('Email CommandDefinitions', () => {
     expect(result.success).toBe(true);
   });
 
+  it('email_list handler maps friendly email_type aliases to API values', async () => {
+    const mockClient = {
+      get: vi.fn().mockResolvedValue({ items: [] }),
+      post: vi.fn(),
+      patch: vi.fn(),
+      delete: vi.fn(),
+      request: vi.fn().mockResolvedValue({ items: [] }),
+    };
+
+    // 'reply' should map to 'received'
+    await emailListCommand.handler({ email_type: 'reply', limit: 10 }, mockClient as any);
+    expect(mockClient.request).toHaveBeenCalledWith(
+      expect.objectContaining({ query: expect.objectContaining({ email_type: 'received' }) }),
+    );
+
+    mockClient.request.mockClear();
+
+    // 'campaign' should map to 'sent'
+    await emailListCommand.handler({ email_type: 'campaign', limit: 10 }, mockClient as any);
+    expect(mockClient.request).toHaveBeenCalledWith(
+      expect.objectContaining({ query: expect.objectContaining({ email_type: 'sent' }) }),
+    );
+
+    mockClient.request.mockClear();
+
+    // 'received' passes through unchanged
+    await emailListCommand.handler({ email_type: 'received', limit: 10 }, mockClient as any);
+    expect(mockClient.request).toHaveBeenCalledWith(
+      expect.objectContaining({ query: expect.objectContaining({ email_type: 'received' }) }),
+    );
+  });
+
   it('email_get requires id as path param', () => {
     expect(emailGetCommand.endpoint.path).toBe('/emails/{id}');
     expect(emailGetCommand.fieldMappings.id).toBe('path');
