@@ -59,16 +59,15 @@ export const leadsUpdateInterestStatusCommand: CommandDefinition = {
     ],
   },
 
-  endpoint: { method: 'POST', path: '/leads/update-interest-status' },
+  endpoint: { method: 'PATCH', path: '/leads/{lead_id}' },
 
   fieldMappings: {
-    lead_id: 'body',
+    lead_id: 'path',
   },
 
   handler: async (input, client) => {
     const statusNumber = resolveInterestStatus(input.interest_status);
-    return client.post('/leads/update-interest-status', {
-      lead_id: input.lead_id,
+    return client.patch(`/leads/${encodeURIComponent(input.lead_id)}`, {
       lt_interest_status: statusNumber,
     });
   },

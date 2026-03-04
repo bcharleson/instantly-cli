@@ -45,8 +45,8 @@ describe('Lead CommandDefinitions', () => {
   it('leads_update_interest_status maps friendly names to numeric values', async () => {
     const mockClient = {
       get: vi.fn(),
-      post: vi.fn().mockResolvedValue({}),
-      patch: vi.fn(),
+      post: vi.fn(),
+      patch: vi.fn().mockResolvedValue({}),
       delete: vi.fn(),
       request: vi.fn(),
     };
@@ -55,19 +55,17 @@ describe('Lead CommandDefinitions', () => {
       { lead_id: 'test-id', interest_status: 'interested' },
       mockClient as any,
     );
-    expect(mockClient.post).toHaveBeenCalledWith('/leads/update-interest-status', {
-      lead_id: 'test-id',
+    expect(mockClient.patch).toHaveBeenCalledWith('/leads/test-id', {
       lt_interest_status: 1,
     });
 
-    mockClient.post.mockClear();
+    mockClient.patch.mockClear();
 
     await leadsUpdateInterestStatusCommand.handler(
       { lead_id: 'test-id', interest_status: 'not_interested' },
       mockClient as any,
     );
-    expect(mockClient.post).toHaveBeenCalledWith('/leads/update-interest-status', {
-      lead_id: 'test-id',
+    expect(mockClient.patch).toHaveBeenCalledWith('/leads/test-id', {
       lt_interest_status: -1,
     });
   });
@@ -75,8 +73,8 @@ describe('Lead CommandDefinitions', () => {
   it('leads_update_interest_status accepts numeric values', async () => {
     const mockClient = {
       get: vi.fn(),
-      post: vi.fn().mockResolvedValue({}),
-      patch: vi.fn(),
+      post: vi.fn(),
+      patch: vi.fn().mockResolvedValue({}),
       delete: vi.fn(),
       request: vi.fn(),
     };
@@ -85,8 +83,7 @@ describe('Lead CommandDefinitions', () => {
       { lead_id: 'test-id', interest_status: '2' },
       mockClient as any,
     );
-    expect(mockClient.post).toHaveBeenCalledWith('/leads/update-interest-status', {
-      lead_id: 'test-id',
+    expect(mockClient.patch).toHaveBeenCalledWith('/leads/test-id', {
       lt_interest_status: 2,
     });
   });

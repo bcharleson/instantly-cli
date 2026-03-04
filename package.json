@@ -1,6 +1,6 @@
 {
   "name": "instantly-cli",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "description": "CLI and MCP server for the Instantly.ai cold email platform",
   "type": "module",
   "bin": {

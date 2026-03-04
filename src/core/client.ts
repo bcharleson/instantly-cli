@@ -12,7 +12,7 @@ const BASE_URL = 'https://api.instantly.ai/api/v2';
 const MAX_RETRIES = 3;
 const REQUEST_TIMEOUT = 30_000;
 const WRITE_TIMEOUT = 15_000;
-const VERSION = '0.1.11';
+const VERSION = '0.1.12';
 
 interface ClientOptions {
   apiKey: string;
