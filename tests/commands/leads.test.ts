@@ -1,9 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { leadsListCommand } from '../../src/commands/leads/list.js';
 import { leadsCreateCommand } from '../../src/commands/leads/create.js';
 import { leadsBulkAddCommand } from '../../src/commands/leads/bulk-add.js';
 import { leadsMoveCommand } from '../../src/commands/leads/move.js';
 import { leadsSubsequenceMoveCommand } from '../../src/commands/leads/subsequence-move.js';
+import { leadsUpdateInterestStatusCommand } from '../../src/commands/leads/update-interest-status.js';
 
 describe('Lead CommandDefinitions', () => {
   it('leads_list uses POST method (API quirk)', () => {
@@ -39,5 +40,71 @@ describe('Lead CommandDefinitions', () => {
     expect(leadsSubsequenceMoveCommand.endpoint.path).toBe('/leads/subsequence/move');
     expect(leadsSubsequenceMoveCommand.fieldMappings.lead_ids).toBe('body');
     expect(leadsSubsequenceMoveCommand.fieldMappings.subsequence_id).toBe('body');
+  });
+
+  it('leads_update_interest_status maps friendly names to numeric values', async () => {
+    const mockClient = {
+      get: vi.fn(),
+      post: vi.fn().mockResolvedValue({}),
+      patch: vi.fn(),
+      delete: vi.fn(),
+      request: vi.fn(),
+    };
+
+    await leadsUpdateInterestStatusCommand.handler(
+      { lead_id: 'test-id', interest_status: 'interested' },
+      mockClient as any,
+    );
+    expect(mockClient.post).toHaveBeenCalledWith('/leads/update-interest-status', {
+      lead_id: 'test-id',
+      lt_interest_status: 1,
+    });
+
+    mockClient.post.mockClear();
+
+    await leadsUpdateInterestStatusCommand.handler(
+      { lead_id: 'test-id', interest_status: 'not_interested' },
+      mockClient as any,
+    );
+    expect(mockClient.post).toHaveBeenCalledWith('/leads/update-interest-status', {
+      lead_id: 'test-id',
+      lt_interest_status: -1,
+    });
+  });
+
+  it('leads_update_interest_status accepts numeric values', async () => {
+    const mockClient = {
+      get: vi.fn(),
+      post: vi.fn().mockResolvedValue({}),
+      patch: vi.fn(),
+      delete: vi.fn(),
+      request: vi.fn(),
+    };
+
+    await leadsUpdateInterestStatusCommand.handler(
+      { lead_id: 'test-id', interest_status: '2' },
+      mockClient as any,
+    );
+    expect(mockClient.post).toHaveBeenCalledWith('/leads/update-interest-status', {
+      lead_id: 'test-id',
+      lt_interest_status: 2,
+    });
+  });
+
+  it('leads_update_interest_status rejects invalid values', async () => {
+    const mockClient = {
+      get: vi.fn(),
+      post: vi.fn(),
+      patch: vi.fn(),
+      delete: vi.fn(),
+      request: vi.fn(),
+    };
+
+    await expect(
+      leadsUpdateInterestStatusCommand.handler(
+        { lead_id: 'test-id', interest_status: 'bogus' },
+        mockClient as any,
+      ),
+    ).rejects.toThrow('Invalid interest status');
   });
 });
