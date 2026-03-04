@@ -446,6 +446,69 @@ instantly webhooks create --event-type "email_sent" --webhook-url "https://your-
 instantly webhooks test --id "<webhook-id>"
 ```
 
+### Listen for replies and events
+
+The CLI manages webhooks but doesn't run an HTTP listener. Here are two approaches depending on your capabilities:
+
+**Approach 1: Polling (recommended for most agents)**
+
+No server required — just poll on an interval:
+
+```bash
+# Check for unread replies every 60 seconds
+instantly email unread-count
+# → {"count":3}
+
+# If count > 0, fetch the new emails
+instantly email list --is-read false --limit 20
+
+# Process each reply, then mark as read
+instantly email mark-read <thread-id>
+
+# Or check lead interest status changes
+instantly leads list --campaign-id "<id>" --interest-status "positive" --limit 50
+```
+
+**Approach 2: Webhooks (real-time, requires a listener endpoint)**
+
+If you can receive HTTP POST requests (e.g., you have a server, tunnel, or serverless function):
+
+```bash
+# Step 1: See all available event types
+instantly webhooks event-types
+# Common events: reply_received, email_sent, lead_interested,
+#   email_opened, link_clicked, email_bounced, email_unsubscribed
+
+# Step 2: Register a webhook for replies
+instantly webhooks create \
+  --event-type "reply_received" \
+  --webhook-url "https://your-agent-endpoint.com/instantly-hook"
+
+# Step 3: Verify it works
+instantly webhooks test --id "<webhook-id>"
+
+# Step 4: Check delivery history if events seem missing
+instantly webhook-events list --webhook-id "<webhook-id>"
+instantly webhook-events summary --webhook-id "<webhook-id>"
+```
+
+When Instantly sends a POST to your endpoint, the payload includes the event type and relevant data (lead email, campaign ID, thread ID, etc.). Your agent can then react by running more CLI commands.
+
+**Approach 3: Polling webhook event history (hybrid)**
+
+If you registered webhooks elsewhere but want to audit delivery:
+
+```bash
+# Check what events were fired recently
+instantly webhook-events list --webhook-id "<id>" --limit 20
+
+# Get summary counts by event type
+instantly webhook-events summary --webhook-id "<id>"
+
+# Daily breakdown
+instantly webhook-events summary-by-date --webhook-id "<id>"
+```
+
 ## Pagination
 
 List commands support cursor-based pagination:
