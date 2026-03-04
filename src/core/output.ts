@@ -12,7 +12,13 @@ export function output(data: unknown, options: GlobalOptions = {}): void {
     if (Array.isArray(data)) {
       result = data.map((item) => pickFields(item, fields));
     } else {
-      result = pickFields(data as Record<string, unknown>, fields);
+      const obj = data as Record<string, unknown>;
+      // Unwrap paginated responses: {items: [...], next_starting_after: "..."} → apply to each item
+      if (Array.isArray(obj.items)) {
+        result = (obj.items as Record<string, unknown>[]).map((item) => pickFields(item, fields));
+      } else {
+        result = pickFields(obj, fields);
+      }
     }
   }
 

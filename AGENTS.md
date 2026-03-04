@@ -543,6 +543,37 @@ MCP config for your AI assistant:
 }
 ```
 
+## Email Body Formatting
+
+Instantly renders email bodies as HTML. Plain text with `\n` newlines will render as a single unbroken block in recipients' email clients.
+
+**The CLI auto-converts plain text to HTML** in `email reply`, `email forward`, and `leads bulk-add` (for custom_variables with `body` in the key name). But if you're building bodies yourself, follow these rules:
+
+- Each paragraph → `<div>paragraph text</div>`
+- Blank line → `<div><br /></div>`
+- Never use raw `\n` newlines in email body strings
+- Template variables `{{first_name}}` and spin syntax `{{RANDOM|a|b}}` pass through untouched
+
+```bash
+# The CLI auto-converts this plain text in --body-text:
+instantly email reply --reply-to-uuid <id> --eaccount "me@domain.com" \
+  --subject "Re: Hello" --body-text "Hi Sarah,
+
+Worth it?
+
+Mark"
+# → Automatically generates HTML: <div>Hi Sarah,</div><div><br /></div><div>Worth it?</div>...
+
+# For leads bulk-add, plain text in body custom_variables is auto-converted:
+instantly leads bulk-add --campaign-id <id> --leads '[{
+  "email": "lead@example.com",
+  "custom_variables": {
+    "email_1_body": "Hi {{first_name}},\n\nWorth a quick chat?\n\nMark"
+  }
+}]'
+# → email_1_body auto-converted to HTML for proper rendering
+```
+
 ## Tips for AI Agents
 
 1. **Always use `--help`** on a group before guessing subcommand names
@@ -552,3 +583,4 @@ MCP config for your AI assistant:
 5. **Rate limits** are handled automatically (100 req/10s, 600 req/min) with retry
 6. **Use `--fields`** to reduce output size when you only need specific data
 7. **Use `--quiet`** when you only care about success/failure
+8. **Use `--pretty`** for human-readable JSON (shorthand for `--output pretty`)

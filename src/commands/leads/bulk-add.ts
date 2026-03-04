@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { CommandDefinition } from '../../core/types.js';
 import { executeCommand } from '../../core/handler.js';
+import { ensureHtml } from '../../core/format.js';
 
 export const leadsBulkAddCommand: CommandDefinition = {
   name: 'leads_bulk_add',
@@ -49,6 +50,19 @@ export const leadsBulkAddCommand: CommandDefinition = {
     if (typeof leads === 'string') {
       leads = JSON.parse(leads);
     }
+
+    // Auto-convert plain text email bodies to HTML in custom_variables
+    // Fields like email_1_body, email_2_body, email_3_body need HTML for proper rendering
+    for (const lead of leads) {
+      if (lead.custom_variables && typeof lead.custom_variables === 'object') {
+        for (const [key, value] of Object.entries(lead.custom_variables)) {
+          if (key.includes('body') && typeof value === 'string' && value.length > 0) {
+            lead.custom_variables[key] = ensureHtml(value);
+          }
+        }
+      }
+    }
+
     return executeCommand(leadsBulkAddCommand, { ...input, leads }, client);
   },
 };

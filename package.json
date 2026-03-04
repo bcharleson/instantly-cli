@@ -1,6 +1,6 @@
 {
   "name": "instantly-cli",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "CLI and MCP server for the Instantly.ai cold email platform",
   "type": "module",
   "bin": {
@@ -10,7 +10,9 @@
     "dist",
     "install.sh",
     "gemini-extension.json",
-    "INSTANTLY.md"
+    "INSTANTLY.md",
+    "AGENTS.md",
+    "CLAUDE.md"
   ],
   "scripts": {
     "dev": "tsx src/index.ts",

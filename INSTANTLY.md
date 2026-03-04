@@ -191,6 +191,29 @@ Manage Done-For-You email account orders:
 2. `analytics_campaign` — per-campaign breakdown
 3. `analytics_daily_campaign` — identify day-over-day trends
 
+## Email Body Formatting — CRITICAL
+
+Instantly renders email bodies as HTML. Plain text with `\n` newlines will render as a single unbroken block in recipients' email clients.
+
+**The CLI auto-converts plain text to HTML** in `email_reply`, `email_forward`, and `leads_bulk_add` (for custom_variables containing `body` in the key name). However, you should still understand the format:
+
+**HTML formatting rules:**
+- Each paragraph → `<div>paragraph text</div>`
+- Blank line between paragraphs → `<div><br /></div>`
+- Never use raw `\n` newlines in email body strings sent to the API
+- Template variables like `{{first_name}}` and spin syntax `{{RANDOM|a|b}}` pass through untouched
+
+**Example:**
+```
+# Wrong — renders as one block
+body = "Hi Sarah,\n\nWorth it?\n\nMark"
+
+# Correct — renders with proper line breaks
+body = "<div>Hi Sarah,</div><div><br /></div><div>Worth it?</div><div><br /></div><div>Mark</div>"
+```
+
+When using `leads_bulk_add` with `custom_variables` for email bodies (e.g., `email_1_body`, `email_2_body`, `email_3_body`), the CLI auto-converts plain text to HTML. If you're calling the API directly, always pass HTML strings.
+
 ## Key Identifiers
 
 - Most resources use UUID strings as IDs (e.g., campaign IDs, lead IDs, account IDs)

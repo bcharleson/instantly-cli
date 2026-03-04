@@ -508,6 +508,11 @@ function registerCommand(parent: Command, cmdDef: CommandDefinition): void {
       // Collect global options from the root program
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions & Record<string, any>;
 
+      // --pretty shorthand for --output pretty
+      if (globalOpts.pretty) {
+        globalOpts.output = 'pretty';
+      }
+
       // Resolve API key
       const apiKey = await resolveApiKey(globalOpts.apiKey);
       const client = new InstantlyClient({ apiKey });

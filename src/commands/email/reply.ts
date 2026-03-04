@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { CommandDefinition } from '../../core/types.js';
 import { executeCommand } from '../../core/handler.js';
+import { ensureHtml } from '../../core/format.js';
 
 export const emailReplyCommand: CommandDefinition = {
   name: 'email_reply',
@@ -50,7 +51,8 @@ export const emailReplyCommand: CommandDefinition = {
     if (body_text || body_html) {
       body.body = {};
       if (body_text) body.body.text = body_text;
-      if (body_html) body.body.html = body_html;
+      // Auto-generate HTML from plain text if no HTML body provided
+      body.body.html = body_html ?? ensureHtml(body_text);
     }
     return client.post('/emails/reply', body);
   },
