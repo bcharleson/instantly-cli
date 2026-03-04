@@ -92,6 +92,8 @@ duplicate         Clone a campaign
 search-by-contact Find campaigns containing a specific lead email
 count-launched    Count active/launched campaigns
 sending-status    Diagnose sending issues for a campaign
+bulk-activate     Activate multiple campaigns at once
+bulk-pause        Pause multiple campaigns at once
 ```
 
 ### leads
@@ -131,12 +133,12 @@ ctd-status       Check custom tracking domain status (requires --host)
 ### email
 Read and reply to emails in the unified inbox.
 ```
-list          List emails (paginated)
+list          List emails (filter by --campaign-id, --email-type, --is-read, --eaccount)
 get           Get a specific email
 update        Update email metadata
 delete        Delete an email
-reply         Reply to an email thread
-forward       Forward an email
+reply         Reply to an email thread (use --to to validate recipient)
+forward       Forward an email (use --expect-from to validate sender)
 mark-read     Mark an email thread as read
 unread-count  Count unread emails
 ```
@@ -406,8 +408,39 @@ instantly email unread-count
 # Fetch unread emails
 instantly email list --is-read false
 
-# Reply to a thread
-instantly email reply --unibox-email-id "<email-id>" --message "Thanks for your interest!"
+# Fetch only replies (excludes campaign sends and manual emails)
+instantly email list --email-type reply
+
+# Replies for a specific campaign
+instantly email list --email-type reply --campaign-id "<id>"
+
+# Reply to a thread (--to validates recipient before sending)
+instantly email reply --reply-to-uuid "<email-id>" --to "lead@example.com" \
+  --eaccount "me@domain.com" --subject "Re: Hello" --body-text "Thanks for your interest!"
+```
+
+### Find a lead by email
+```bash
+# Search across all leads
+instantly leads list --search "lead@example.com"
+
+# Search within a specific campaign
+instantly leads list --campaign-id "<id>" --search "lead@example.com"
+
+# Find which campaigns contain a lead
+instantly campaigns search-by-contact "lead@example.com"
+```
+
+### Bulk activate/pause campaigns
+```bash
+# Activate multiple campaigns
+instantly campaigns bulk-activate --ids "id1,id2,id3"
+
+# Pause multiple campaigns
+instantly campaigns bulk-pause --ids "id1,id2,id3"
+
+# Also works with JSON arrays
+instantly campaigns bulk-activate --ids '["id1","id2","id3"]'
 ```
 
 ### Health-check sending infrastructure
@@ -584,3 +617,8 @@ instantly leads bulk-add --campaign-id <id> --leads '[{
 6. **Use `--fields`** to reduce output size when you only need specific data
 7. **Use `--quiet`** when you only care about success/failure
 8. **Use `--pretty`** for human-readable JSON (shorthand for `--output pretty`)
+9. **Use `--email-type reply`** to filter email list to only replies (excludes campaign sends)
+10. **Use `leads list --search`** to find a lead by email — no need to know the lead ID
+11. **Use `campaigns search-by-contact`** to find which campaigns a lead is in — accepts email as positional arg
+12. **Use `--to` on email reply** and `--expect-from` on email forward to validate recipients before sending
+13. **Use `bulk-activate` / `bulk-pause`** to manage multiple campaigns at once

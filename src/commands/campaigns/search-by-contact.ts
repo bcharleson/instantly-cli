@@ -6,21 +6,23 @@ export const campaignsSearchByContactCommand: CommandDefinition = {
   name: 'campaigns_search-by-contact',
   group: 'campaigns',
   subcommand: 'search-by-contact',
-  description: 'Search campaigns by lead email. Find all campaigns that contain a specific contact.',
+  description: 'Find all campaigns containing a specific lead email. Pass the email as an argument or use --search.',
   examples: [
+    'instantly campaigns search-by-contact "lead@example.com"',
     'instantly campaigns search-by-contact --search "lead@example.com"',
-    'instantly campaigns search-by-contact --search "lead@example.com" --sort-order desc',
+    'instantly campaigns search-by-contact "lead@example.com" --sort-order desc',
   ],
 
   inputSchema: z.object({
-    search: z.string().describe('Lead email to search for'),
+    search: z.string().describe('Lead email address to search for'),
     sort_column: z.string().optional().describe('Column to sort by (default: timestamp_created)'),
     sort_order: z.string().optional().describe('Sort direction: asc or desc (default: asc)'),
   }),
 
   cliMappings: {
+    args: [{ field: 'search', name: 'email', required: false }],
     options: [
-      { field: 'search', flags: '--search <email>', description: 'Lead email to search for' },
+      { field: 'search', flags: '--search <email>', description: 'Lead email to search for (alternative to positional arg)' },
       { field: 'sort_column', flags: '--sort-column <column>', description: 'Sort column' },
       { field: 'sort_order', flags: '--sort-order <order>', description: 'Sort order (asc/desc)' },
     ],

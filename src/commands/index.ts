@@ -21,6 +21,8 @@ import { campaignsDuplicateCommand } from './campaigns/duplicate.js';
 import { campaignsSearchByContactCommand } from './campaigns/search-by-contact.js';
 import { campaignsCountLaunchedCommand } from './campaigns/count-launched.js';
 import { campaignsSendingStatusCommand } from './campaigns/sending-status.js';
+import { campaignsBulkActivateCommand } from './campaigns/bulk-activate.js';
+import { campaignsBulkPauseCommand } from './campaigns/bulk-pause.js';
 
 import { leadsListCommand } from './leads/list.js';
 import { leadsGetCommand } from './leads/get.js';
@@ -254,6 +256,8 @@ export const allCommands: CommandDefinition[] = [
   campaignsSearchByContactCommand,
   campaignsCountLaunchedCommand,
   campaignsSendingStatusCommand,
+  campaignsBulkActivateCommand,
+  campaignsBulkPauseCommand,
   // Leads
   leadsListCommand,
   leadsGetCommand,

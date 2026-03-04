@@ -25,6 +25,20 @@ describe('Email CommandDefinitions', () => {
     expect(invalid.success).toBe(false);
   });
 
+  it('email_list supports --email-type, --eaccount, --campaign-id filters', () => {
+    expect(emailListCommand.fieldMappings.email_type).toBe('query');
+    expect(emailListCommand.fieldMappings.eaccount).toBe('query');
+    expect(emailListCommand.fieldMappings.campaign_id).toBe('query');
+    expect(emailListCommand.fieldMappings.is_read).toBe('query');
+
+    const result = emailListCommand.inputSchema.safeParse({
+      email_type: 'reply',
+      eaccount: 'sender@domain.com',
+      campaign_id: 'test-id',
+    });
+    expect(result.success).toBe(true);
+  });
+
   it('email_get requires id as path param', () => {
     expect(emailGetCommand.endpoint.path).toBe('/emails/{id}');
     expect(emailGetCommand.fieldMappings.id).toBe('path');

@@ -6,10 +6,12 @@ export const leadsListCommand: CommandDefinition = {
   name: 'leads_list',
   group: 'leads',
   subcommand: 'list',
-  description: 'List leads in a campaign. Returns paginated results with lead email, status, and custom variables.',
+  description: 'List leads in a campaign or lead list. Use --search to find a lead by email address. Returns paginated results with lead email, status, and custom variables.',
   examples: [
     'instantly leads list --campaign-id <id>',
     'instantly leads list --campaign-id <id> --limit 50',
+    'instantly leads list --search "lead@example.com"',
+    'instantly leads list --campaign-id <id> --search "lead@example.com"',
     'instantly leads list --list-id <id>',
   ],
 
