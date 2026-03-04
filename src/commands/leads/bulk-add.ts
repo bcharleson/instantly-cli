@@ -15,7 +15,10 @@ export const leadsBulkAddCommand: CommandDefinition = {
   inputSchema: z.object({
     campaign_id: z.string().optional().describe('Campaign ID to add leads to'),
     list_id: z.string().optional().describe('Lead list ID to add leads to'),
-    leads: z.array(z.record(z.string(), z.any())).describe('Array of lead objects with at least an email field'),
+    leads: z.preprocess(
+      (v) => (typeof v === 'string' ? JSON.parse(v) : v),
+      z.array(z.record(z.string(), z.any())),
+    ).describe('Array of lead objects with at least an email field'),
     skip_if_in_workspace: z.boolean().optional().describe('Skip leads already in workspace'),
     skip_if_in_campaign: z.boolean().optional().describe('Skip leads already in this campaign'),
   }),

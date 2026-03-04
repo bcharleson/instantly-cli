@@ -22,7 +22,7 @@ export const analyticsCampaignOverviewCommand: CommandDefinition = {
 
   cliMappings: {
     options: [
-      { field: 'id', flags: '--id <id>', description: 'Campaign ID' },
+      { field: 'id', flags: '--id, --campaign-id <id>', description: 'Campaign ID' },
       { field: 'ids', flags: '--ids <ids>', description: 'Comma-separated campaign IDs' },
       { field: 'start_date', flags: '--start-date <date>', description: 'Start date' },
       { field: 'end_date', flags: '--end-date <date>', description: 'End date' },

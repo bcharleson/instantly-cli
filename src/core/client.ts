@@ -11,6 +11,8 @@ import {
 const BASE_URL = 'https://api.instantly.ai/api/v2';
 const MAX_RETRIES = 3;
 const REQUEST_TIMEOUT = 30_000;
+const WRITE_TIMEOUT = 15_000;
+const VERSION = '0.1.6';
 
 interface ClientOptions {
   apiKey: string;
@@ -50,7 +52,7 @@ export class InstantlyClient implements IInstantlyClient {
 
     const headers: Record<string, string> = {
       Authorization: `Bearer ${this.apiKey}`,
-      'User-Agent': 'instantly-cli/0.1.4',
+      'User-Agent': `instantly-cli/${VERSION}`,
     };
 
     if (options.body !== undefined) {
@@ -58,11 +60,13 @@ export class InstantlyClient implements IInstantlyClient {
     }
 
     let lastError: Error | undefined;
+    const isWrite = options.method !== 'GET';
+    const effectiveTimeout = isWrite ? Math.min(this.timeout, WRITE_TIMEOUT) : this.timeout;
 
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+        const timeoutId = setTimeout(() => controller.abort(), effectiveTimeout);
 
         const response = await fetch(url.toString(), {
           method: options.method,
@@ -131,10 +135,11 @@ export class InstantlyClient implements IInstantlyClient {
 
         if (isAbort) {
           lastError = new InstantlyError(
-            `Request timed out after ${this.timeout / 1000}s: ${options.method} ${options.path}`,
+            `Request timed out after ${effectiveTimeout / 1000}s: ${options.method} ${options.path}`,
             'TIMEOUT',
           );
-          if (attempt < this.maxRetries) {
+          // Don't retry write operations on timeout — could create duplicates
+          if (!isWrite && attempt < this.maxRetries) {
             await sleep(Math.min(1000 * Math.pow(2, attempt), 10_000));
             continue;
           }
