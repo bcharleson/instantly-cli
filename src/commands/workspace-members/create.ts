@@ -16,7 +16,7 @@ export const workspaceMembersCreateCommand: CommandDefinition = {
 
   cliMappings: {
     options: [
-      { field: 'email', flags: '--email <email>', description: 'Member email (required)' },
+      { field: 'email', flags: '-e, --email <email>', description: 'Member email (required)' },
       { field: 'role', flags: '--role <role>', description: 'Role (required)' },
     ],
   },

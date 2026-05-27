@@ -12,7 +12,11 @@ const BASE_URL = 'https://api.instantly.ai/api/v2';
 const MAX_RETRIES = 3;
 const REQUEST_TIMEOUT = 30_000;
 const WRITE_TIMEOUT = 15_000;
-const VERSION = '0.1.12';
+
+// __CLI_VERSION__ is replaced by tsup at build time (see tsup.config.ts `define`).
+// This avoids runtime createRequire() calls whose relative paths break after bundling.
+declare const __CLI_VERSION__: string;
+const VERSION: string = typeof __CLI_VERSION__ !== 'undefined' ? __CLI_VERSION__ : '0.0.0-dev';
 
 interface ClientOptions {
   apiKey: string;

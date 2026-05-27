@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { CommandDefinition } from '../../core/types.js';
+import { searchFiltersSchema } from './search-filters.js';
 
 export const enrichmentPreviewCommand: CommandDefinition = {
   name: 'enrichment_preview',
@@ -7,11 +8,12 @@ export const enrichmentPreviewCommand: CommandDefinition = {
   subcommand: 'preview',
   description: 'Preview leads matching SuperSearch filters without importing them.',
   examples: [
-    'instantly enrichment preview --search-filters \'{"job_titles":["VP Sales"],"industries":["SaaS"]}\'',
+    `instantly enrichment preview --search-filters '{"domains":["example.com"],"title":{"include":["CEO","Founder"]}}'`,
+    `instantly enrichment preview --search-filters '{"title":{"include":["VP Sales"]},"employee_count":["25 - 100"]}'`,
   ],
 
   inputSchema: z.object({
-    search_filters: z.string().describe('JSON string of search filters'),
+    search_filters: searchFiltersSchema,
   }),
 
   cliMappings: {

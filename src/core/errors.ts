@@ -47,9 +47,50 @@ export class ServerError extends InstantlyError {
   }
 }
 
+/**
+ * Translates known opaque backend error strings into actionable CLI messages.
+ * Each entry is a [substring-to-match, human-readable-fix-hint] pair.
+ * Matching is case-insensitive and checks whether the original message contains
+ * the key as a substring.
+ */
+const BACKEND_ERROR_REMEDIATION: Array<[string, string]> = [
+  [
+    'At least one enrichment type must be enabled',
+    'Enable at least one enrichment flag: --work-email, --full-profile, or --custom-flow <providers>. ' +
+      'Example: instantly enrichment enrich --search-filters \'{"domains":["example.com"]}\' --work-email --limit 10',
+  ],
+  [
+    'MISSING_REQUIRED_FIELDS_FOR_ENRICHMENT',
+    'The --filters array is missing required fields. ' +
+      'Run "instantly enrichment create --help" to see the expected shape. ' +
+      'The array element must include a valid "search_filters" object.',
+  ],
+  [
+    'body/filters must be array',
+    '--filters must be a JSON array, not an object. ' +
+      "Example: --filters '[{\"search_filters\":{\"title\":{\"include\":[\"CEO\"]}}}]'",
+  ],
+  [
+    'Invalid API key',
+    'The API key was rejected. Check that INSTANTLY_API_KEY (or --api-key) is correct, ' +
+      'not expired, and belongs to the right workspace. Run "instantly auth logout" to reset.',
+  ],
+];
+
+/** Enrich a backend error message with a fix hint if one is known. */
+function applyRemediation(message: string): string {
+  const lower = message.toLowerCase();
+  for (const [pattern, hint] of BACKEND_ERROR_REMEDIATION) {
+    if (lower.includes(pattern.toLowerCase())) {
+      return `${message}\n\nFix: ${hint}`;
+    }
+  }
+  return message;
+}
+
 export function formatError(error: unknown): { message: string; code: string } {
   if (error instanceof InstantlyError) {
-    return { message: error.message, code: error.code };
+    return { message: applyRemediation(error.message), code: error.code };
   }
   if (error instanceof Error) {
     // Detect abort/timeout errors that weren't caught as InstantlyError
@@ -60,7 +101,7 @@ export function formatError(error: unknown): { message: string; code: string } {
     if (error.message.includes('ECONNREFUSED') || error.message.includes('ENOTFOUND')) {
       return { message: `Network error: ${error.message}`, code: 'NETWORK_ERROR' };
     }
-    return { message: error.message, code: 'UNKNOWN_ERROR' };
+    return { message: applyRemediation(error.message), code: 'UNKNOWN_ERROR' };
   }
   return { message: String(error), code: 'UNKNOWN_ERROR' };
 }

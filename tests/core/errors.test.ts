@@ -52,7 +52,9 @@ describe('Error classes', () => {
 describe('formatError', () => {
   it('formats InstantlyError with code', () => {
     const result = formatError(new AuthError('Invalid API key'));
-    expect(result).toEqual({ message: 'Invalid API key', code: 'AUTH_ERROR' });
+    expect(result.code).toBe('AUTH_ERROR');
+    expect(result.message).toContain('Invalid API key');
+    expect(result.message).toContain('Fix:');
   });
 
   it('formats timeout InstantlyError', () => {

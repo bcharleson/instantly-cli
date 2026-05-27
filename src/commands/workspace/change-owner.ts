@@ -16,7 +16,7 @@ export const workspaceChangeOwnerCommand: CommandDefinition = {
 
   cliMappings: {
     options: [
-      { field: 'email', flags: '--email <email>', description: 'Email of the new owner' },
+      { field: 'email', flags: '-e, --email <email>', description: 'Email of the new owner' },
       { field: 'sec', flags: '--sec <token>', description: 'Secret token for authentication' },
     ],
   },

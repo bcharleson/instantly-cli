@@ -3,11 +3,13 @@ import type { CommandDefinition, GlobalOptions } from '../core/types.js';
 import { resolveApiKey } from '../core/auth.js';
 import { InstantlyClient } from '../core/client.js';
 import { output, outputError } from '../core/output.js';
+import { ValidationError } from '../core/errors.js';
 
 // Auth commands (special — don't need an API client)
 import { registerLoginCommand } from './auth/login.js';
 import { registerLogoutCommand } from './auth/logout.js';
 import { registerOAuthCommand } from './auth/oauth.js';
+import { registerStatusCommand } from './auth/status.js';
 
 // Command definitions
 import { campaignsListCommand } from './campaigns/list.js';
@@ -129,6 +131,7 @@ import { workspaceWhitelabelCreateCommand } from './workspace/whitelabel-create.
 import { workspaceWhitelabelGetCommand } from './workspace/whitelabel-get.js';
 import { workspaceWhitelabelDeleteCommand } from './workspace/whitelabel-delete.js';
 import { workspaceChangeOwnerCommand } from './workspace/change-owner.js';
+import { workspaceCreditsCommand } from './workspace/credits.js';
 
 // Subsequences
 import { subsequencesListCommand } from './subsequences/list.js';
@@ -355,6 +358,7 @@ export const allCommands: CommandDefinition[] = [
   workspaceWhitelabelGetCommand,
   workspaceWhitelabelDeleteCommand,
   workspaceChangeOwnerCommand,
+  workspaceCreditsCommand,
   // Subsequences
   subsequencesListCommand,
   subsequencesCreateCommand,
@@ -452,6 +456,7 @@ export function registerAllCommands(program: Command): void {
   registerLoginCommand(program);
   registerLogoutCommand(program);
   registerOAuthCommand(program);
+  registerStatusCommand(program);
 
   // Register MCP server command
   registerMcpCommand(program);
@@ -548,7 +553,7 @@ function registerCommand(parent: Command, cmdDef: CommandDefinition): void {
         }
       }
 
-      // Validate input against schema
+      // Validate input against schema (client-side — no request is sent on failure)
       const parsed = cmdDef.inputSchema.safeParse(input);
       if (!parsed.success) {
         const issues = parsed.error.issues ?? [];
@@ -556,10 +561,12 @@ function registerCommand(parent: Command, cmdDef: CommandDefinition): void {
           .filter((i: any) => i.code === 'invalid_type' && String(i.message).includes('received undefined'))
           .map((i: any) => '--' + String(i.path?.[0] ?? '').replace(/_/g, '-'));
         if (missing.length > 0) {
-          throw new Error(`Missing required option(s): ${missing.join(', ')}`);
+          throw new ValidationError(
+            `Missing required option(s): ${missing.join(', ')} (no request was sent to the server)`,
+          );
         }
         const msg = issues.map((i: any) => `${i.path?.join('.')}: ${i.message}`).join('; ');
-        throw new Error(`Invalid input: ${msg}`);
+        throw new ValidationError(`Invalid input: ${msg} (no request was sent to the server)`);
       }
 
       const result = await cmdDef.handler(parsed.data, client);

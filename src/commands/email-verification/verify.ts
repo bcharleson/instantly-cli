@@ -19,7 +19,7 @@ export const emailVerificationVerifyCommand: CommandDefinition = {
 
   cliMappings: {
     options: [
-      { field: 'email', flags: '--email <email>', description: 'Email to verify (required)' },
+      { field: 'email', flags: '-e, --email <email>', description: 'Email to verify (required)' },
       { field: 'webhook_url', flags: '--webhook-url <url>', description: 'Webhook for async results' },
     ],
   },
