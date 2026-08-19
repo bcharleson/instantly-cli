@@ -133,3 +133,22 @@ export async function resolveApiKey(flagKey?: string): Promise<string> {
   const creds = await resolveCredentials({ apiKey: flagKey });
   return creds.apiKey;
 }
+
+/**
+ * Key supplied to `login` / `profile add` (not the full credential resolver).
+ * Commander may attach `--api-key` to the command or strip it onto the program
+ * when the same flag is declared globally — check both before env.
+ *
+ * Order: command `--api-key` → global `--api-key` / program.opts().apiKey → INSTANTLY_API_KEY
+ */
+export function resolveProvidedApiKey(
+  commandApiKey?: string,
+  globalApiKey?: string,
+): string | undefined {
+  const fromCommand = commandApiKey?.trim();
+  if (fromCommand) return fromCommand;
+  const fromGlobal = globalApiKey?.trim();
+  if (fromGlobal) return fromGlobal;
+  const fromEnv = process.env.INSTANTLY_API_KEY?.trim();
+  return fromEnv || undefined;
+}

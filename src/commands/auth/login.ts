@@ -1,5 +1,6 @@
 import { Command } from 'commander';
 import { InstantlyClient } from '../../core/client.js';
+import { resolveProvidedApiKey } from '../../core/auth.js';
 import { output, outputError } from '../../core/output.js';
 import { persistLoginSession, defaultConfigHintPath, defaultProfileHintPath } from '../../core/login-store.js';
 import { fetchLiveWorkspace, normalizeWorkspace } from '../../core/workspace.js';
@@ -32,7 +33,7 @@ export function registerLoginCommand(program: Command): void {
       const profileSlug = (opts.profile || globalOpts.profile) as string | undefined;
 
       try {
-        let apiKey = opts.apiKey || process.env.INSTANTLY_API_KEY;
+        let apiKey = resolveProvidedApiKey(opts.apiKey, globalOpts.apiKey);
 
         if (!apiKey) {
           if (!process.stdin.isTTY) {

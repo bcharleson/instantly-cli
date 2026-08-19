@@ -1,5 +1,6 @@
 import { Command } from 'commander';
 import { InstantlyClient } from '../../core/client.js';
+import { resolveProvidedApiKey } from '../../core/auth.js';
 import { persistLoginSession, defaultProfileHintPath } from '../../core/login-store.js';
 import { deleteProfile, listProfiles, loadProfile } from '../../core/profiles.js';
 import { fetchLiveWorkspace } from '../../core/workspace.js';
@@ -20,7 +21,7 @@ export function registerProfileCommands(program: Command): void {
     .action(async (slug: string, opts: { apiKey?: string }) => {
       const globalOpts = program.opts() as GlobalOptions;
       try {
-        const apiKey = opts.apiKey || process.env.INSTANTLY_API_KEY;
+        const apiKey = resolveProvidedApiKey(opts.apiKey, globalOpts.apiKey);
         if (!apiKey) {
           throw new Error('No API key provided. Use --api-key or set INSTANTLY_API_KEY');
         }
