@@ -2,6 +2,8 @@
 
 > This file helps AI agents (GPT, Claude, Gemini, open-source models, etc.) install, authenticate, and use the Instantly CLI to manage cold email campaigns, leads, email accounts, and more via the Instantly.ai platform.
 
+> Compact rails for Claude/Cursor skills: see [`SKILL.md`](./SKILL.md).
+
 ## Quick Start
 
 ```bash
@@ -584,14 +586,14 @@ instantly campaigns list --limit 10 --starting-after "<last-id>"
 
 ## MCP Server (for Claude, Cursor, VS Code)
 
-The CLI also includes a built-in MCP server exposing all 156 commands as tools:
+The CLI also includes a built-in MCP server exposing all 156 commands as tools. One MCP server process per workspace.
 
 ```bash
 # Start the MCP server
 instantly mcp
 ```
 
-MCP config for your AI assistant:
+Default (one workspace):
 ```json
 {
   "mcpServers": {
@@ -604,36 +606,32 @@ MCP config for your AI assistant:
 }
 ```
 
+Agency: set `INSTANTLY_PROFILE=client-a` instead of a key. Mutating tools require `workspace_id` matching the bound id. There is no all-profiles MCP tool.
+
 ## Email Body Formatting
 
-Instantly renders email bodies as HTML. Plain text with `\n` newlines will render as a single unbroken block in recipients' email clients.
+Instantly delivers HTML. **Pass readable copy with real line breaks.** The CLI converts plain-text newlines so you do not hand-write tags. Do not send a run-on string. Existing HTML is left unchanged. `--text-only` skips conversion. Same Instantly `body` key — do not invent another field. Template variables `{{first_name}}` and spin syntax `{{RANDOM|a|b}}` pass through.
 
-**The CLI auto-converts plain text to HTML** in `email reply`, `email forward`, and `leads bulk-add` (for custom_variables with `body` in the key name). For campaigns and subsequences: Instantly delivers HTML. Pass readable copy with real line breaks in each variant body; the CLI converts plain-text newlines to `<br/>`/`<p>`. Do not write a run-on string. Existing HTML is left unchanged. Skipped when text_only. Same Instantly `body` key — do not invent another field. delay on step N waits before step N+1. First email does not wait. Pass delay_unit. Instantly uses only sequences[0]. Do not set pre_delay on a normal campaign. email_gap is a rate limit, not the step gap. If you're building reply/forward bodies yourself, follow these rules:
-
-- Each paragraph → `<div>paragraph text</div>`
-- Blank line → `<div><br /></div>`
-- Never use raw `\n` newlines in email body strings
-- Template variables `{{first_name}}` and spin syntax `{{RANDOM|a|b}}` pass through untouched
+Applies to `campaigns create` / `update`, `subsequences create`, `email reply`, `email forward`, and `leads bulk-add` custom_variables whose key contains `body`.
 
 ```bash
-# The CLI auto-converts this plain text in --body-text:
+# Readable copy with real line breaks — CLI converts
 instantly email reply --reply-to-uuid <id> --eaccount "me@domain.com" \
   --subject "Re: Hello" --body-text "Hi Sarah,
 
 Worth it?
 
 Mark"
-# → Automatically generates HTML: <div>Hi Sarah,</div><div><br /></div><div>Worth it?</div>...
 
-# For leads bulk-add, plain text in body custom_variables is auto-converted:
 instantly leads bulk-add --campaign-id <id> --leads '[{
   "email": "lead@example.com",
   "custom_variables": {
     "email_1_body": "Hi {{first_name}},\n\nWorth a quick chat?\n\nMark"
   }
 }]'
-# → email_1_body auto-converted to HTML for proper rendering
 ```
+
+delay on step N waits before step N+1. First email does not wait. Pass delay_unit. Instantly uses only sequences[0]. Do not set pre_delay on a normal campaign. email_gap is a rate limit, not the step gap. Read `sequence_timeline` after create.
 
 ## Tips for AI Agents
 

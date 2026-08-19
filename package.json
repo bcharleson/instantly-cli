@@ -12,7 +12,8 @@
     "gemini-extension.json",
     "INSTANTLY.md",
     "AGENTS.md",
-    "CLAUDE.md"
+    "CLAUDE.md",
+    "SKILL.md"
   ],
   "scripts": {
     "dev": "tsx src/index.ts",

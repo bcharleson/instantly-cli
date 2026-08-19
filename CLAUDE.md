@@ -33,7 +33,7 @@ interface CommandDefinition {
 - `src/core/types.ts` — CommandDefinition interface and shared types
 - `src/core/client.ts` — HTTP client (auth, retry, rate limiting, pagination)
 - `src/core/handler.ts` — executeCommand() builds HTTP requests from CommandDefinition + input
-- `src/core/auth.ts` — API key resolution (--api-key flag > env var > config file)
+- `src/core/auth.ts` — API key resolution (--api-key flag > INSTANTLY_API_KEY > cwd .env > config.json). `--profile` / INSTANTLY_PROFILE selects `~/.instantly/profiles/<slug>.json` and wins over cwd .env INSTANTLY_API_KEY.
 - `src/core/output.ts` — JSON output formatting, --fields, --quiet, --pretty
 - `src/core/errors.ts` — Typed error classes
 - `src/core/config.ts` — ~/.instantly/config.json manager
