@@ -79,3 +79,19 @@ export function assertWriteWorkspace(
     );
   }
 }
+
+/**
+ * When `--workspace` is passed on any path (default or profile), it must match
+ * the live workspace the current API key belongs to.
+ */
+export function assertWorkspaceMatchesLive(
+  live: LiveWorkspace,
+  workspaceFlag: string,
+): void {
+  if (workspaceFlag !== live.id) {
+    throw new WorkspaceMismatchError(
+      `--workspace ${workspaceFlag} does not match the live workspace ${live.id}` +
+        `${live.name ? ` (${live.name})` : ''}. Aborting.`,
+    );
+  }
+}

@@ -144,6 +144,23 @@ describe('agency CLI (real program, two profiles)', () => {
     expect(fetches.some((call) => call.key === 'client-b-key')).toBe(false);
   });
 
+  it('default key + --workspace of a different uuid aborts before the HTTP handler', async () => {
+    fetches.length = 0;
+    await run([
+      '--workspace',
+      CLIENT_B,
+      'campaigns',
+      'activate',
+      '33333333-3333-4333-8333-333333333333',
+    ]);
+    expect(process.exitCode).toBe(1);
+    expect(stderr.join('\n')).toMatch(/does not match the live workspace/);
+    expect(fetches.some((call) => call.url.includes('/activate'))).toBe(false);
+    expect(fetches.some((call) => call.url.includes('/campaigns/') && call.method === 'POST')).toBe(
+      false,
+    );
+  });
+
   it('write with the wrong --workspace aborts before the mutation', async () => {
     await run([
       '--profile',

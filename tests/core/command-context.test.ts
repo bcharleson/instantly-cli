@@ -40,6 +40,32 @@ describe('createCommandContext', () => {
     expect(getSpy).not.toHaveBeenCalled();
   });
 
+  it('default key + --workspace of a different uuid aborts before the handler', async () => {
+    process.env.INSTANTLY_API_KEY = 'default-key';
+    getSpy.mockResolvedValue({ id: ACME_WORKSPACE, name: 'Default Workspace' });
+
+    await expect(
+      createCommandContext({
+        workspace: OTHER_WORKSPACE,
+        mutating: true,
+      }),
+    ).rejects.toBeInstanceOf(WorkspaceMismatchError);
+
+    await expect(
+      createCommandContext({
+        workspace: OTHER_WORKSPACE,
+        mutating: true,
+      }),
+    ).rejects.toThrow(/does not match the live workspace 11111111-1111-4111-8111-111111111111/);
+
+    const ctx = await createCommandContext({
+      workspace: ACME_WORKSPACE,
+      mutating: true,
+    });
+    expect(ctx.liveWorkspace?.id).toBe(ACME_WORKSPACE);
+    expect(ctx.credentials.profile).toBeUndefined();
+  });
+
   it('aborts a profiled command when the live workspace id does not match the bound id', async () => {
     await withHome(async () => {
       await saveProfile('acme', {

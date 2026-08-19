@@ -49,6 +49,7 @@ Or per command: `--profile client-a`.
 - When a profile is selected, it wins over a leftover cwd `.env` `INSTANTLY_API_KEY`.
 - Every profiled command re-fetches the live workspace. If live `workspace.id` ≠ bound `workspace_id`, abort.
 - Writes require `--workspace <uuid>` matching the bound id (CLI) or `workspace_id` (MCP). Mismatch → abort.
+- When `--workspace` is passed on any path (default or profile), live id must match or the command aborts. Omitted on the default single-key path: no extra flag required.
 - `status` / `whoami` always print credential source, profile slug (if any), workspace id, and workspace name.
 
 ```bash

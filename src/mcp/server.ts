@@ -20,7 +20,7 @@ const isolationShape = {
     .string()
     .optional()
     .describe(
-      'Workspace UUID confirmation. Required for mutating tools when a profile is selected; must match the bound id.',
+      'Workspace UUID confirmation. Required for mutating tools when a profile is selected (must match the bound id). When passed on the default single-key path, must match the live workspace.',
     ),
 };
 

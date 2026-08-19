@@ -22,7 +22,10 @@ export function createProgram(): Command {
     .version(version)
     .option('--api-key <key>', 'API key (overrides INSTANTLY_API_KEY env var and stored config)')
     .option('--profile <slug>', 'Use a named workspace profile from ~/.instantly/profiles/<slug>.json (or set INSTANTLY_PROFILE)')
-    .option('--workspace <uuid>', 'Confirm the target workspace UUID (required for write commands when using a profile)')
+    .option(
+      '--workspace <uuid>',
+      'Confirm the target workspace UUID. Required for writes when using a profile. When passed on any path, must match the live workspace.',
+    )
     .option('--output <format>', 'Output format: json (default) or pretty', 'json')
     .option('--pretty', 'Shorthand for --output pretty')
     .option('--quiet', 'Suppress output, exit codes only')

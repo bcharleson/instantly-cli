@@ -10,7 +10,7 @@ Default (one workspace): `--api-key`, or `INSTANTLY_API_KEY`, or cwd `.env` `INS
 
 Agency (opt-in): `--profile <slug>` or `INSTANTLY_PROFILE=<slug>` loads `~/.instantly/profiles/<slug>.json`. `login --profile` does not write `config.json`. One process, one workspace — no all-profiles tool. When a profile is selected, it wins over a leftover cwd `.env` key.
 
-Mutating tools require `workspace_id` matching the bound workspace when a profile is selected. Start one MCP server per workspace (`INSTANTLY_PROFILE=client-a`).
+Mutating tools require `workspace_id` matching the bound workspace when a profile is selected. When `workspace_id` / `--workspace` is passed on the default single-key path, it must match the live workspace (omitted = no extra flag). Start one MCP server per workspace (`INSTANTLY_PROFILE=client-a`).
 
 API keys are generated from Instantly workspace settings.
 

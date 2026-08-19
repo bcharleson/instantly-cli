@@ -1,6 +1,12 @@
 import { InstantlyClient } from './client.js';
 import { resolveCredentials, type ResolvedCredentials } from './auth.js';
-import { assertProfileWorkspace, assertWriteWorkspace, type LiveWorkspace } from './workspace.js';
+import {
+  assertProfileWorkspace,
+  assertWorkspaceMatchesLive,
+  assertWriteWorkspace,
+  fetchLiveWorkspace,
+  type LiveWorkspace,
+} from './workspace.js';
 
 export interface CommandContextOptions {
   apiKey?: string;
@@ -19,6 +25,7 @@ export interface CommandContext {
  * Build the HTTP client for a single command invocation.
  * One process, one workspace: a selected profile is verified against the live
  * workspace, and writes also require an explicit matching --workspace UUID.
+ * When `--workspace` is passed on any path, live id must match that flag.
  */
 export async function createCommandContext(
   opts: CommandContextOptions,
@@ -28,15 +35,25 @@ export async function createCommandContext(
     profile: opts.profile,
   });
   const client = new InstantlyClient({ apiKey: credentials.apiKey });
+  const workspaceFlag = opts.workspace?.trim() || undefined;
 
-  if (!credentials.profile) {
+  if (credentials.profile) {
+    const liveWorkspace = await assertProfileWorkspace(client, credentials.profile);
+    if (opts.mutating) {
+      assertWriteWorkspace(credentials.profile, workspaceFlag);
+    }
+    if (workspaceFlag) {
+      assertWorkspaceMatchesLive(liveWorkspace, workspaceFlag);
+    }
+    return { client, credentials, liveWorkspace };
+  }
+
+  // Default single-key path: --workspace is optional. Omitted = today's behavior.
+  if (!workspaceFlag) {
     return { client, credentials };
   }
 
-  const liveWorkspace = await assertProfileWorkspace(client, credentials.profile);
-  if (opts.mutating) {
-    assertWriteWorkspace(credentials.profile, opts.workspace);
-  }
-
+  const liveWorkspace = await fetchLiveWorkspace(client);
+  assertWorkspaceMatchesLive(liveWorkspace, workspaceFlag);
   return { client, credentials, liveWorkspace };
 }

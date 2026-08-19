@@ -111,6 +111,7 @@ Rules, fail-closed:
 - When a profile is selected, it wins over a leftover cwd `.env` `INSTANTLY_API_KEY`.
 - Every profiled command re-fetches the live workspace. If `workspace.id` ≠ the bound id, the command aborts.
 - Write commands (campaign activate/pause, leads bulk-add, email reply/forward, and other mutations) also require `--workspace <uuid>` matching the bound id.
+- When `--workspace` is passed on any path (default or profile), the live workspace id must match or the command aborts. Omitted on the default single-key path: no extra flag required.
 
 ```bash
 # Bind a client workspace to a named profile (does not touch default login)

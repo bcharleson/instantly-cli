@@ -59,7 +59,7 @@ instantly --profile client-a --workspace "$CLIENT_A_WORKSPACE_ID" \
   campaigns activate "$CAMPAIGN_ID"
 ```
 
-If live `workspace.id` ≠ the profile's bound id, the command aborts. A leftover cwd `.env` `INSTANTLY_API_KEY` does not override `--profile` / `INSTANTLY_PROFILE`.
+If live `workspace.id` ≠ the profile's bound id, the command aborts. When `--workspace` is passed on any path (default or profile), live id must match or the command aborts. Omitted on the default single-key path: no extra flag required. A leftover cwd `.env` `INSTANTLY_API_KEY` does not override `--profile` / `INSTANTLY_PROFILE`.
 
 MCP: start one server per workspace (`INSTANTLY_PROFILE=client-a`). Mutating tools require `workspace_id` matching the bound id.
 
