@@ -34,7 +34,12 @@ MCP Configuration:
         }
       }
     }
-  }`)
+  }
+
+  Agency/agent mode (one workspace per process):
+  set INSTANTLY_PROFILE=<slug> after "instantly login --profile <slug>".
+  Mutating tools also require workspace_id matching the bound workspace.
+  There is no all-profiles tool.`)
     .action(async () => {
       process.on('SIGINT', () => process.exit(0));
       process.on('SIGTERM', () => process.exit(0));

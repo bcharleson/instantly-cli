@@ -1,7 +1,28 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { loadConfig } from './config.js';
+import { loadConfig, getConfigPath } from './config.js';
 import { AuthError } from './errors.js';
+import { loadProfile, getProfilePath } from './profiles.js';
+import type { InstantlyProfile } from './types.js';
+
+export type CredentialSource =
+  | '--api-key flag'
+  | 'INSTANTLY_API_KEY environment variable'
+  | '.env file'
+  | 'stored config'
+  | 'profile';
+
+export interface ResolvedCredentials {
+  apiKey: string;
+  source: string;
+  profile?: InstantlyProfile & { slug: string };
+}
+
+export interface ResolveCredentialsOptions {
+  apiKey?: string;
+  profile?: string;
+  cwd?: string;
+}
 
 /**
  * Parse a `.env` file from the given directory into a key→value map.
@@ -39,24 +60,76 @@ export async function loadDotEnv(cwd: string = process.cwd()): Promise<Record<st
   }
 }
 
-export async function resolveApiKey(flagKey?: string): Promise<string> {
-  // 1. --api-key flag takes highest priority
-  if (flagKey) return flagKey;
+function resolveProfileSlug(explicit?: string): string | undefined {
+  const fromFlag = explicit?.trim();
+  if (fromFlag) return fromFlag;
+  const fromEnv = process.env.INSTANTLY_PROFILE?.trim();
+  return fromEnv || undefined;
+}
 
-  // 2. INSTANTLY_API_KEY already set in the process environment
+/**
+ * Resolve which API key and (optional) workspace profile this process will use.
+ *
+ * Without a profile, order is unchanged:
+ *   --api-key → INSTANTLY_API_KEY → cwd .env INSTANTLY_API_KEY → ~/.instantly/config.json
+ *
+ * When `--profile` or INSTANTLY_PROFILE is set, the named profile wins over
+ * cwd `.env` and over INSTANTLY_API_KEY. `--api-key` still overrides the stored
+ * profile key; live workspace verification then fail-closes if the key belongs
+ * to a different workspace.
+ */
+export async function resolveCredentials(
+  opts: ResolveCredentialsOptions = {},
+): Promise<ResolvedCredentials> {
+  const slug = resolveProfileSlug(opts.profile);
+
+  if (slug) {
+    const stored = await loadProfile(slug);
+    if (!stored) {
+      throw new AuthError(
+        `Profile '${slug}' not found at ${getProfilePath(slug)}. ` +
+          `Create it with: instantly login --profile ${slug}`,
+      );
+    }
+    const profile = { ...stored, slug };
+    if (opts.apiKey) {
+      return { apiKey: opts.apiKey, source: '--api-key flag', profile };
+    }
+    return {
+      apiKey: stored.api_key,
+      source: `profile (${slug})`,
+      profile,
+    };
+  }
+
+  if (opts.apiKey) {
+    return { apiKey: opts.apiKey, source: '--api-key flag' };
+  }
+
   const envKey = process.env.INSTANTLY_API_KEY;
-  if (envKey) return envKey;
+  if (envKey) {
+    return { apiKey: envKey, source: 'INSTANTLY_API_KEY environment variable' };
+  }
 
-  // 3. INSTANTLY_API_KEY from a local .env file in the current working directory
-  const dotEnv = await loadDotEnv();
+  const dotEnv = await loadDotEnv(opts.cwd ?? process.cwd());
   const dotEnvKey = dotEnv['INSTANTLY_API_KEY'];
-  if (dotEnvKey) return dotEnvKey;
+  if (dotEnvKey) {
+    const envPath = join(opts.cwd ?? process.cwd(), '.env');
+    return { apiKey: dotEnvKey, source: `.env file (${envPath})` };
+  }
 
-  // 4. Stored config from ~/.instantly/config.json
   const config = await loadConfig();
-  if (config?.api_key) return config.api_key;
+  if (config?.api_key) {
+    return { apiKey: config.api_key, source: `stored config (${getConfigPath()})` };
+  }
 
   throw new AuthError(
-    'No API key found. Set INSTANTLY_API_KEY, use --api-key, add it to a local .env file, or run: instantly login',
+    'No API key found. Set INSTANTLY_API_KEY, use --api-key, add it to a local .env file, ' +
+      'run instantly login, or pass --profile <slug> after instantly login --profile <slug>',
   );
+}
+
+export async function resolveApiKey(flagKey?: string): Promise<string> {
+  const creds = await resolveCredentials({ apiKey: flagKey });
+  return creds.apiKey;
 }

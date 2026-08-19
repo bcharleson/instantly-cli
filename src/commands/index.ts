@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import type { CommandDefinition, GlobalOptions } from '../core/types.js';
-import { resolveApiKey } from '../core/auth.js';
-import { InstantlyClient } from '../core/client.js';
+import { createCommandContext } from '../core/command-context.js';
+import { isMutatingCommand } from '../core/mutating.js';
 import { output, outputError } from '../core/output.js';
 import { ValidationError } from '../core/errors.js';
 
@@ -10,6 +10,8 @@ import { registerLoginCommand } from './auth/login.js';
 import { registerLogoutCommand } from './auth/logout.js';
 import { registerOAuthCommand } from './auth/oauth.js';
 import { registerStatusCommand } from './auth/status.js';
+import { registerProfileCommands } from './profile/index.js';
+import { registerHealthCommand } from './health/index.js';
 
 // Command definitions
 import { campaignsListCommand } from './campaigns/list.js';
@@ -457,6 +459,8 @@ export function registerAllCommands(program: Command): void {
   registerLogoutCommand(program);
   registerOAuthCommand(program);
   registerStatusCommand(program);
+  registerProfileCommands(program);
+  registerHealthCommand(program);
 
   // Register MCP server command
   registerMcpCommand(program);
@@ -522,9 +526,12 @@ function registerCommand(parent: Command, cmdDef: CommandDefinition): void {
         globalOpts.output = 'pretty';
       }
 
-      // Resolve API key
-      const apiKey = await resolveApiKey(globalOpts.apiKey);
-      const client = new InstantlyClient({ apiKey });
+      const { client } = await createCommandContext({
+        apiKey: globalOpts.apiKey,
+        profile: globalOpts.profile,
+        workspace: globalOpts.workspace,
+        mutating: isMutatingCommand(cmdDef),
+      });
 
       // Build input from positional args + options
       const input: Record<string, any> = {};

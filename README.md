@@ -68,11 +68,14 @@ npm link
 
 ## Authentication
 
-Three ways to authenticate, checked in this order:
+Default mode is **one workspace, one key**. Existing single-key users do not need profiles.
+
+Resolve order **without** `--profile` / `INSTANTLY_PROFILE`:
 
 1. **`--api-key` flag** — pass on any command: `instantly campaigns list --api-key <key>`
 2. **Environment variable** — `export INSTANTLY_API_KEY=your-key`
-3. **Stored config** — run `instantly login` to save your key to `~/.instantly/config.json`
+3. **cwd `.env`** — `INSTANTLY_API_KEY` in a local `.env` file
+4. **Stored config** — run `instantly login` to save your key to `~/.instantly/config.json` (mode `0600`)
 
 Get your API key from [app.instantly.ai/app/settings/integrations](https://app.instantly.ai/app/settings/integrations).
 
@@ -85,12 +88,50 @@ export INSTANTLY_API_KEY=your-key
 instantly campaigns list
 ```
 
-### Interactive login
+### Interactive login (default / single-key)
 
 ```bash
 instantly login
 # Prompts for your API key, validates it, saves to ~/.instantly/config.json
 ```
+
+`npx instantly-cli campaigns list` keeps working with one key.
+
+### Opt-in workspace profiles (agency / agent mode)
+
+Profiles are **opt-in** and live **beside** the default config, never inside it:
+
+`~/.instantly/profiles/<slug>.json` = `{ api_key, workspace_id, workspace_name }` (mode `0600`)
+
+Rules, fail-closed:
+
+- One process, one workspace. There is no `--all-profiles` and no comma-separated key list.
+- `instantly login --profile acme` validates the key, GETs the live workspace, and binds that workspace UUID + name. It **does not** write or overwrite `~/.instantly/config.json`.
+- Commands accept `--profile <slug>` and/or `INSTANTLY_PROFILE=<slug>`.
+- When a profile is selected, it wins over a leftover cwd `.env` `INSTANTLY_API_KEY`.
+- Every profiled command re-fetches the live workspace. If `workspace.id` ≠ the bound id, the command aborts.
+- Write commands (campaign activate/pause, leads bulk-add, email reply/forward, and other mutations) also require `--workspace <uuid>` matching the bound id.
+
+```bash
+# Bind a client workspace to a named profile (does not touch default login)
+instantly login --profile acme --api-key "$ACME_KEY"
+instantly login --profile client-a --api-key "$CLIENT_A_KEY"
+
+# Read-only: profile is enough
+instantly --profile acme campaigns list
+INSTANTLY_PROFILE=client-a instantly status
+
+# Writes must confirm the bound workspace UUID
+instantly --profile acme --workspace 11111111-1111-4111-8111-111111111111 \
+  campaigns activate 33333333-3333-4333-8333-333333333333
+
+# Inspect / manage profiles (never prints API keys)
+instantly profile list
+instantly profile whoami
+instantly profile remove acme
+```
+
+`instantly status` / `whoami` always prints credential source, profile slug (if any), workspace id, and workspace name.
 
 ---
 
@@ -141,6 +182,27 @@ instantly campaigns list --quiet
 ---
 
 ## Commands
+
+### Profiles
+
+Opt-in named workspace profiles for agents that must isolate client keys.
+
+```bash
+instantly login --profile acme --api-key <key>        # Bind key → workspace; does not write config.json
+instantly profile add acme --api-key <key>            # Same persist path as login --profile
+instantly profile list                                # Slug + workspace id/name only
+instantly profile whoami                              # Source + profile + live workspace
+instantly profile remove acme                         # Deletes the profile file only
+```
+
+### Health
+
+Read-only rollup of existing API data for the active profile or default key: disconnected accounts, bounce totals, warmup status, and campaign sending status.
+
+```bash
+instantly health
+instantly --profile acme health
+```
 
 ### Campaigns (11)
 
@@ -565,6 +627,22 @@ Add to your MCP settings (Claude Desktop, Cursor, VS Code, Windsurf):
 }
 ```
 
+Mutating MCP tools accept `profile` and/or `workspace_id` and abort on mismatch. Use `INSTANTLY_PROFILE` for a single-workspace agent process. There is no “run across all profiles” tool.
+
+```json
+{
+  "mcpServers": {
+    "instantly-acme": {
+      "command": "npx",
+      "args": ["instantly-cli", "mcp"],
+      "env": {
+        "INSTANTLY_PROFILE": "acme"
+      }
+    }
+  }
+}
+```
+
 This registers 156 tools across 31 groups:
 
 | Group | Tools | Examples |
@@ -698,7 +776,7 @@ The CLI uses a **CommandDefinition** pattern where every API endpoint is defined
 src/
 ├── core/
 │   ├── client.ts      # HTTP client with retry, rate limiting, pagination
-│   ├── auth.ts        # API key resolution (flag → env → config)
+│   ├── auth.ts        # API key resolution (flag → env → .env → config; opt-in --profile)
 │   ├── output.ts      # JSON output formatting
 │   └── types.ts       # CommandDefinition interface
 ├── commands/
