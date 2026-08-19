@@ -112,6 +112,11 @@ describe('createCommandContext', () => {
       expect(creds.apiKey).toBe('profile-key');
       expect(creds.profile?.slug).toBe('acme');
       expect(creds.source).toBe('profile (acme)');
+
+      process.env.INSTANTLY_PROFILE = 'acme';
+      const fromEnv = await resolveCredentials({ cwd });
+      expect(fromEnv.apiKey).toBe('profile-key');
+      expect(fromEnv.profile?.slug).toBe('acme');
     });
   });
 });
