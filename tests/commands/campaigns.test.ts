@@ -54,6 +54,62 @@ describe('Campaign CommandDefinitions', () => {
     }
   });
 
+  it('campaigns_create normalizes plain-text variant bodies and leaves HTML alone', async () => {
+    const post = vi.fn().mockResolvedValue({ id: 'camp-1' });
+    const client = { post } as any;
+
+    await campaignsCreateCommand.handler({
+      name: 'Plain Body',
+      sequences: [
+        {
+          steps: [
+            {
+              type: 'email',
+              delay: 0,
+              variants: [
+                { subject: 'Hi {{first_name}}', body: 'Hi {{first_name}},\n\nWorth a quick chat?' },
+                { subject: 'HTML', body: '<div>Hello</div>' },
+              ],
+            },
+          ],
+        },
+      ],
+    }, client);
+
+    const sent = post.mock.calls[0][1];
+    expect(sent.sequences[0].steps[0].variants[0].body).toBe(
+      '<p>Hi {{first_name}},</p><p>Worth a quick chat?</p>',
+    );
+    expect(sent.sequences[0].steps[0].variants[1].body).toBe('<div>Hello</div>');
+  });
+
+  it('campaigns_create skips body normalization when text_only', async () => {
+    const post = vi.fn().mockResolvedValue({ id: 'camp-1' });
+    await campaignsCreateCommand.handler({
+      name: 'Text Only',
+      text_only: true,
+      sequences: [
+        { steps: [{ type: 'email', variants: [{ subject: 'Hi', body: 'Hello\n\nWorld' }] }] },
+      ],
+    }, { post } as any);
+
+    expect(post.mock.calls[0][1].sequences[0].steps[0].variants[0].body).toBe('Hello\n\nWorld');
+  });
+
+  it('campaigns_update normalizes plain-text variant bodies', async () => {
+    const patch = vi.fn().mockResolvedValue({ id: 'camp-1' });
+    await campaignsUpdateCommand.handler({
+      id: 'camp-1',
+      sequences: [
+        { steps: [{ type: 'email', variants: [{ subject: 'Hi', body: 'Line one\nLine two' }] }] },
+      ],
+    }, { patch } as any);
+
+    expect(patch.mock.calls[0][1].sequences[0].steps[0].variants[0].body).toBe(
+      '<p>Line one<br/>Line two</p>',
+    );
+  });
+
   it('campaigns_create parses JSON string sequences', () => {
     const seqJson = '[{"steps":[{"type":"email","delay":0}]}]';
     const result = campaignsCreateCommand.inputSchema.safeParse({

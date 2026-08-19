@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { CommandDefinition } from '../../core/types.js';
+import { normalizeSequenceBodies } from '../../core/format.js';
 
 const DEFAULT_SCHEDULE = {
   schedules: [{
@@ -20,6 +21,7 @@ export const campaignsCreateCommand: CommandDefinition = {
     'instantly campaigns create --name "Cold Email" --text-only --no-open-tracking --no-link-tracking --stop-on-reply',
     'instantly campaigns create --name "Full Config" --email-list \'["s1@d.com","s2@d.com"]\' --daily-limit 25 --email-gap 10',
     'instantly campaigns create --name "With Sequences" --sequences \'[{"steps":[{"type":"email","delay":0,"variants":[{"subject":"Hi {{first_name}}","body":"<div>Hello</div>"}]}]}]\'',
+    'instantly campaigns create --name "Plain Body" --sequences \'[{"steps":[{"type":"email","delay":0,"variants":[{"subject":"Hi {{first_name}}","body":"Hi {{first_name}},\\n\\nWorth a quick chat?"}]}]}]\'',
   ],
 
   inputSchema: z.object({
@@ -42,7 +44,9 @@ export const campaignsCreateCommand: CommandDefinition = {
     sequences: z.preprocess(
       (v) => (typeof v === 'string' ? JSON.parse(v) : v),
       z.array(z.any()).optional(),
-    ).describe('JSON array of sequence objects with steps'),
+    ).describe(
+      'JSON array of sequence objects with steps. Plain-text variant body values are auto-normalized to Instantly HTML (<p> / <br/>) unless --text-only. Existing HTML is left unchanged.',
+    ),
     // Schedule
     campaign_schedule: z.preprocess(
       (v) => (typeof v === 'string' ? JSON.parse(v) : v),
@@ -95,7 +99,9 @@ export const campaignsCreateCommand: CommandDefinition = {
 
     for (const field of optionalFields) {
       if (input[field] !== undefined) {
-        body[field] = input[field];
+        body[field] = field === 'sequences'
+          ? normalizeSequenceBodies(input[field], input.text_only === true)
+          : input[field];
       }
     }
 

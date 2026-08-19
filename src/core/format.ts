@@ -38,3 +38,67 @@ export function isHtml(text: string): boolean {
 export function ensureHtml(text: string): string {
   return isHtml(text) ? text : bodyToHtml(text);
 }
+
+/**
+ * Instantly campaign/subsequence variant `body` normalizer.
+ *
+ * Official create-campaign docs: variant body is "Email body HTML. Use
+ * `<br/>` tags for delivered email line breaks." Plain `\n` in JSON is
+ * collapsed into a run-on paragraph in the sent email.
+ *
+ * - Already-HTML bodies (`<br`, `<p`, `<div`, …) are left unchanged.
+ * - Plain text: normalize `\r\n`/`\r`/`\n`, turn `\n\n` into `</p><p>`,
+ *   `\n` into `<br/>`, wrap in `<p>…</p>`.
+ */
+export function normalizeInstantlyBody(text: string): string {
+  if (isHtml(text)) return text;
+
+  const normalized = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  const trimmed = normalized.replace(/^\n+|\n+$/g, '');
+  if (!trimmed) return text;
+
+  const html = trimmed
+    .split(/\n\n+/)
+    .map((paragraph) => paragraph.split('\n').join('<br/>'))
+    .join('</p><p>');
+
+  return `<p>${html}</p>`;
+}
+
+/**
+ * Walk Instantly `sequences[].steps[].variants[].body` (same `body` key the
+ * API already uses). Skipped when `textOnly` is true.
+ */
+export function normalizeSequenceBodies(
+  sequences: unknown,
+  textOnly = false,
+): unknown {
+  if (textOnly || !Array.isArray(sequences)) return sequences;
+
+  return sequences.map((sequence) => {
+    if (!sequence || typeof sequence !== 'object') return sequence;
+    const next = { ...(sequence as Record<string, unknown>) };
+    if (!Array.isArray(next.steps)) return next;
+
+    next.steps = next.steps.map((step) => {
+      if (!step || typeof step !== 'object') return step;
+      const nextStep = { ...(step as Record<string, unknown>) };
+      if (typeof nextStep.body === 'string') {
+        nextStep.body = normalizeInstantlyBody(nextStep.body);
+      }
+      if (Array.isArray(nextStep.variants)) {
+        nextStep.variants = nextStep.variants.map((variant) => {
+          if (!variant || typeof variant !== 'object') return variant;
+          const nextVariant = { ...(variant as Record<string, unknown>) };
+          if (typeof nextVariant.body === 'string') {
+            nextVariant.body = normalizeInstantlyBody(nextVariant.body);
+          }
+          return nextVariant;
+        });
+      }
+      return nextStep;
+    });
+
+    return next;
+  });
+}

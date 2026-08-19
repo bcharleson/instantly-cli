@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { CommandDefinition } from '../../core/types.js';
+import { normalizeSequenceBodies } from '../../core/format.js';
 
 export const campaignsUpdateCommand: CommandDefinition = {
   name: 'campaigns_update',
@@ -35,7 +36,9 @@ export const campaignsUpdateCommand: CommandDefinition = {
     sequences: z.preprocess(
       (v) => (typeof v === 'string' ? JSON.parse(v) : v),
       z.array(z.any()).optional(),
-    ).describe('JSON array of sequence objects with steps'),
+    ).describe(
+      'JSON array of sequence objects with steps. Plain-text variant body values are auto-normalized to Instantly HTML (<p> / <br/>) unless --text-only. Existing HTML is left unchanged.',
+    ),
     // Schedule
     campaign_schedule: z.preprocess(
       (v) => (typeof v === 'string' ? JSON.parse(v) : v),
@@ -82,7 +85,9 @@ export const campaignsUpdateCommand: CommandDefinition = {
     const body: Record<string, any> = {};
     for (const [key, value] of Object.entries(fields)) {
       if (value !== undefined) {
-        body[key] = value;
+        body[key] = key === 'sequences'
+          ? normalizeSequenceBodies(value, fields.text_only === true)
+          : value;
       }
     }
     return client.patch(`/campaigns/${encodeURIComponent(id)}`, body);

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { subsequencesListCommand } from '../../src/commands/subsequences/list.js';
 import { subsequencesCreateCommand } from '../../src/commands/subsequences/create.js';
 import { subsequencesUpdateCommand } from '../../src/commands/subsequences/update.js';
@@ -16,6 +16,23 @@ describe('Subsequence CommandDefinitions', () => {
     expect(subsequencesListCommand.endpoint.path).toBe('/subsequences');
     expect(subsequencesListCommand.paginated).toBe(true);
     expect(subsequencesListCommand.fieldMappings.parent_campaign).toBe('query');
+  });
+
+  it('subsequences_create normalizes plain-text variant bodies', async () => {
+    const post = vi.fn().mockResolvedValue({ id: 'sub-1' });
+    await subsequencesCreateCommand.handler({
+      parent_campaign: 'camp-1',
+      name: 'Follow-up',
+      conditions: '{}',
+      subsequence_schedule: '{}',
+      sequences: JSON.stringify([
+        { steps: [{ type: 'email', variants: [{ subject: 'Hi', body: 'Hello\n\nAgain' }] }] },
+      ]),
+    }, { post } as any);
+
+    expect(post.mock.calls[0][1].sequences[0].steps[0].variants[0].body).toBe(
+      '<p>Hello</p><p>Again</p>',
+    );
   });
 
   it('subsequences_create sends POST with body fields', () => {

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { CommandDefinition } from '../../core/types.js';
-import { executeCommand } from '../../core/handler.js';
+import { normalizeSequenceBodies } from '../../core/format.js';
 
 export const subsequencesCreateCommand: CommandDefinition = {
   name: 'subsequences_create',
@@ -16,7 +16,9 @@ export const subsequencesCreateCommand: CommandDefinition = {
     name: z.string().describe('Subsequence name'),
     conditions: z.string().describe('Trigger conditions (JSON)'),
     subsequence_schedule: z.string().describe('Schedule config (JSON)'),
-    sequences: z.string().describe('Email sequences (JSON array)'),
+    sequences: z.string().describe(
+      'Email sequences (JSON array). Plain-text variant body values are auto-normalized to Instantly HTML (<p> / <br/>). Existing HTML is left unchanged.',
+    ),
   }),
 
   cliMappings: {
@@ -38,7 +40,9 @@ export const subsequencesCreateCommand: CommandDefinition = {
       name: input.name,
       conditions: typeof input.conditions === 'string' ? JSON.parse(input.conditions) : input.conditions,
       subsequence_schedule: typeof input.subsequence_schedule === 'string' ? JSON.parse(input.subsequence_schedule) : input.subsequence_schedule,
-      sequences: typeof input.sequences === 'string' ? JSON.parse(input.sequences) : input.sequences,
+      sequences: normalizeSequenceBodies(
+        typeof input.sequences === 'string' ? JSON.parse(input.sequences) : input.sequences,
+      ),
     };
     return client.post('/subsequences', body);
   },

@@ -238,6 +238,23 @@ instantly campaigns sending-status <id>               # Diagnose why a campaign 
 instantly campaigns delete <id>                       # Delete permanently
 ```
 
+Instantly variant `body` is HTML. Use `<br/>` for delivered line breaks — plain `\n` in JSON is collapsed into a run-on email. The CLI normalizes this on `campaigns create` / `update` and `subsequences create`:
+
+- Already-HTML bodies (`<div>Hello</div>`, `<p>…</p>`, `<br/>`, …) are left unchanged
+- Plain text becomes `<p>…</p>` with `\n\n` → `</p><p>` and `\n` → `<br/>`
+- `--text-only` campaigns skip this (bodies stay plain text)
+- Same Instantly `body` key — no second field
+
+```bash
+# Already HTML — stored as-is
+instantly campaigns create --name "With Sequences" --sequences \
+  '[{"steps":[{"type":"email","delay":0,"variants":[{"subject":"Hi {{first_name}}","body":"<div>Hello</div>"}]}]}]'
+
+# Plain text — CLI sends <p>Hi {{first_name}},</p><p>Worth a quick chat?</p>
+instantly campaigns create --name "Plain Body" --sequences \
+  '[{"steps":[{"type":"email","delay":0,"variants":[{"subject":"Hi {{first_name}}","body":"Hi {{first_name}},\n\nWorth a quick chat?"}]}]}]'
+```
+
 ### Leads (12)
 
 Import, manage, and move prospects across campaigns.
