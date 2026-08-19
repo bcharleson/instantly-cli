@@ -1,6 +1,13 @@
 import { z } from 'zod';
 import type { CommandDefinition } from '../../core/types.js';
 import { normalizeSequenceBodies, SEQUENCE_BODY_HINT } from '../../core/format.js';
+import {
+  SEQUENCE_DELAY_HINT,
+  validateAndNormalizeSequences,
+  withSequenceTimeline,
+} from '../../core/sequences.js';
+
+const SEQUENCE_FIELD_HINT = `${SEQUENCE_BODY_HINT} ${SEQUENCE_DELAY_HINT}`;
 
 const DEFAULT_SCHEDULE = {
   schedules: [{
@@ -17,7 +24,7 @@ export const campaignsCreateCommand: CommandDefinition = {
   subcommand: 'create',
   description:
     'Create a new campaign with full configuration. A default Mon-Fri 9am-5pm ET schedule is used if none is provided. ' +
-    SEQUENCE_BODY_HINT,
+    SEQUENCE_FIELD_HINT,
   examples: [
     'instantly campaigns create --name "Q1 Outreach"',
     'instantly campaigns create --name "Cold Email" --text-only --no-open-tracking --no-link-tracking --stop-on-reply',
@@ -36,7 +43,9 @@ export const campaignsCreateCommand: CommandDefinition = {
     stop_on_auto_reply: z.boolean().optional().describe('Stop sending on auto-replies'),
     // Rate limiting
     daily_limit: z.coerce.number().optional().describe('Max emails per day per sending account'),
-    email_gap: z.coerce.number().optional().describe('Minutes between individual emails'),
+    email_gap: z.coerce.number().optional().describe(
+      'Minutes between individual sends (rate limit). Not the multi-day gap between sequence steps — that is step delay / delay_unit.',
+    ),
     // Senders
     email_list: z.preprocess(
       (v) => (typeof v === 'string' ? JSON.parse(v) : v),
@@ -46,7 +55,7 @@ export const campaignsCreateCommand: CommandDefinition = {
     sequences: z.preprocess(
       (v) => (typeof v === 'string' ? JSON.parse(v) : v),
       z.array(z.any()).optional(),
-    ).describe(`JSON array of sequence objects with steps. ${SEQUENCE_BODY_HINT}`),
+    ).describe(`JSON array of sequence objects with steps. ${SEQUENCE_FIELD_HINT}`),
     // Schedule
     campaign_schedule: z.preprocess(
       (v) => (typeof v === 'string' ? JSON.parse(v) : v),
@@ -63,9 +72,9 @@ export const campaignsCreateCommand: CommandDefinition = {
       { field: 'stop_on_reply', flags: '--stop-on-reply', description: 'Stop sequence on reply (use --no-stop-on-reply to continue)' },
       { field: 'stop_on_auto_reply', flags: '--stop-on-auto-reply', description: 'Stop on auto-reply' },
       { field: 'daily_limit', flags: '--daily-limit <number>', description: 'Max emails/day per account' },
-      { field: 'email_gap', flags: '--email-gap <minutes>', description: 'Minutes between emails' },
+      { field: 'email_gap', flags: '--email-gap <minutes>', description: 'Minutes between individual sends (rate limit), not the step gap' },
       { field: 'email_list', flags: '--email-list <json>', description: 'Sender emails (JSON array)' },
-      { field: 'sequences', flags: '--sequences <json>', description: SEQUENCE_BODY_HINT },
+      { field: 'sequences', flags: '--sequences <json>', description: SEQUENCE_FIELD_HINT },
       { field: 'campaign_schedule', flags: '--schedule <json>', description: 'Schedule (JSON object, has default)' },
     ],
   },
@@ -97,14 +106,19 @@ export const campaignsCreateCommand: CommandDefinition = {
       'daily_limit', 'email_gap', 'email_list', 'sequences',
     ] as const;
 
+    let sequences: Record<string, unknown>[] | undefined;
     for (const field of optionalFields) {
       if (input[field] !== undefined) {
-        body[field] = field === 'sequences'
-          ? normalizeSequenceBodies(input[field], input.text_only === true)
-          : input[field];
+        if (field === 'sequences') {
+          sequences = validateAndNormalizeSequences(input[field], 'campaign');
+          body[field] = normalizeSequenceBodies(sequences, input.text_only === true);
+        } else {
+          body[field] = input[field];
+        }
       }
     }
 
-    return client.post('/campaigns', body);
+    const created = await client.post('/campaigns', body);
+    return sequences ? withSequenceTimeline(created, sequences, 'campaign') : created;
   },
 };

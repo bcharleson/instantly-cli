@@ -242,14 +242,16 @@ Instantly delivers HTML. Pass readable copy with real line breaks in each varian
 
 Applies to `campaigns create` / `update` and `subsequences create` (same Instantly `body` key).
 
+delay on step N waits before step N+1. First email does not wait. Pass delay_unit (minutes|hours|days; omitted unit is set to days). Instantly uses only `sequences[0]`. A multi-step sequence with delay 0 or missing delay on a non-last step is rejected — the follow-up would send the same day. Last step delay may be 0. `email_gap` is a per-send rate limit, not the step gap. `pre_delay` is subsequence-only.
+
 ```bash
 # Preferred: readable copy with real line breaks — CLI converts
 instantly campaigns create --name "Plain Body" --sequences \
-  '[{"steps":[{"type":"email","delay":0,"variants":[{"subject":"Hi {{first_name}}","body":"Hi {{first_name}},\n\nWorth a quick chat?"}]}]}]'
+  '[{"steps":[{"type":"email","delay":3,"delay_unit":"days","variants":[{"subject":"Hi {{first_name}}","body":"Hi {{first_name}},\n\nWorth a quick chat?"}]},{"type":"email","delay":0,"delay_unit":"days","variants":[{"subject":"Re: Hi","body":"Just bumping this."}]}]}]'
 
-# Already tagged HTML is stored as-is
+# Already tagged HTML is stored as-is (single email: last-step delay may be 0)
 instantly campaigns create --name "With Sequences" --sequences \
-  '[{"steps":[{"type":"email","delay":0,"variants":[{"subject":"Hi {{first_name}}","body":"<div>Hello</div>"}]}]}]'
+  '[{"steps":[{"type":"email","delay":0,"delay_unit":"days","variants":[{"subject":"Hi {{first_name}}","body":"<div>Hello</div>"}]}]}]'
 ```
 
 ### Leads (12)

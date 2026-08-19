@@ -10,6 +10,7 @@ import { campaignsBulkActivateCommand } from '../../src/commands/campaigns/bulk-
 import { campaignsBulkPauseCommand } from '../../src/commands/campaigns/bulk-pause.js';
 import { campaignsSearchByContactCommand } from '../../src/commands/campaigns/search-by-contact.js';
 import { SEQUENCE_BODY_HINT } from '../../src/core/format.js';
+import { SEQUENCE_DELAY_HINT } from '../../src/core/sequences.js';
 
 describe('Campaign CommandDefinitions', () => {
   it('campaigns_list has correct structure', () => {
@@ -30,12 +31,16 @@ describe('Campaign CommandDefinitions', () => {
   it('surfaces the body-conversion hint on MCP description, zod, and --help', () => {
     for (const cmd of [campaignsCreateCommand, campaignsUpdateCommand]) {
       expect(cmd.description).toContain(SEQUENCE_BODY_HINT);
+      expect(cmd.description).toContain(SEQUENCE_DELAY_HINT);
       expect(cmd.description).toContain('real line breaks');
       expect(cmd.description).not.toMatch(/must hand-write/i);
       const sequencesOpt = cmd.cliMappings.options?.find((opt) => opt.field === 'sequences');
-      expect(sequencesOpt?.description).toBe(SEQUENCE_BODY_HINT);
+      expect(sequencesOpt?.description).toContain(SEQUENCE_BODY_HINT);
+      expect(sequencesOpt?.description).toContain(SEQUENCE_DELAY_HINT);
+      expect(sequencesOpt?.description).toContain('delay on step N waits before step N+1');
       const sequencesSchema = cmd.inputSchema.shape.sequences;
       expect(sequencesSchema.description).toContain(SEQUENCE_BODY_HINT);
+      expect(sequencesSchema.description).toContain(SEQUENCE_DELAY_HINT);
     }
   });
 
@@ -79,6 +84,7 @@ describe('Campaign CommandDefinitions', () => {
             {
               type: 'email',
               delay: 0,
+              delay_unit: 'days',
               variants: [
                 { subject: 'Hi {{first_name}}', body: 'Hi {{first_name}},\n\nWorth a quick chat?' },
                 { subject: 'HTML', body: '<div>Hello</div>' },
@@ -94,6 +100,44 @@ describe('Campaign CommandDefinitions', () => {
       '<p>Hi {{first_name}},</p><p>Worth a quick chat?</p>',
     );
     expect(sent.sequences[0].steps[0].variants[1].body).toBe('<div>Hello</div>');
+    expect(sent.sequences[0].steps[0].delay_unit).toBe('days');
+  });
+
+  it('campaigns_create aborts a multi-step sequence with delay 0 on a non-last step', async () => {
+    const post = vi.fn();
+    await expect(
+      campaignsCreateCommand.handler({
+        name: 'Bad Gaps',
+        sequences: [
+          {
+            steps: [
+              { type: 'email', delay: 0, variants: [{ subject: 'One', body: 'Hi' }] },
+              { type: 'email', delay: 0, variants: [{ subject: 'Two', body: 'Hi again' }] },
+            ],
+          },
+        ],
+      }, { post } as any),
+    ).rejects.toThrow(/same day/);
+    expect(post).not.toHaveBeenCalled();
+  });
+
+  it('campaigns_create echoes a human timeline after a valid multi-step sequence', async () => {
+    const post = vi.fn().mockResolvedValue({ id: 'camp-1', name: 'Two Step' });
+    const result = await campaignsCreateCommand.handler({
+      name: 'Two Step',
+      sequences: [
+        {
+          steps: [
+            { type: 'email', delay: 3, variants: [{ subject: 'One', body: 'Hi' }] },
+            { type: 'email', delay: 0, variants: [{ subject: 'Two', body: 'Hi again' }] },
+          ],
+        },
+      ],
+    }, { post } as any) as { sequence_timeline: { summary: string } };
+
+    expect(result.sequence_timeline.summary).toBe(
+      'Email 1: on campaign schedule; Email 2: +3 days after Email 1',
+    );
   });
 
   it('campaigns_create skips body normalization when text_only', async () => {
@@ -102,7 +146,7 @@ describe('Campaign CommandDefinitions', () => {
       name: 'Text Only',
       text_only: true,
       sequences: [
-        { steps: [{ type: 'email', variants: [{ subject: 'Hi', body: 'Hello\n\nWorld' }] }] },
+        { steps: [{ type: 'email', delay: 0, variants: [{ subject: 'Hi', body: 'Hello\n\nWorld' }] }] },
       ],
     }, { post } as any);
 
@@ -114,7 +158,7 @@ describe('Campaign CommandDefinitions', () => {
     await campaignsUpdateCommand.handler({
       id: 'camp-1',
       sequences: [
-        { steps: [{ type: 'email', variants: [{ subject: 'Hi', body: 'Line one\nLine two' }] }] },
+        { steps: [{ type: 'email', delay: 0, variants: [{ subject: 'Hi', body: 'Line one\nLine two' }] }] },
       ],
     }, { patch } as any);
 

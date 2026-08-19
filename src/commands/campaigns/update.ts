@@ -1,6 +1,13 @@
 import { z } from 'zod';
 import type { CommandDefinition } from '../../core/types.js';
 import { normalizeSequenceBodies, SEQUENCE_BODY_HINT } from '../../core/format.js';
+import {
+  SEQUENCE_DELAY_HINT,
+  validateAndNormalizeSequences,
+  withSequenceTimeline,
+} from '../../core/sequences.js';
+
+const SEQUENCE_FIELD_HINT = `${SEQUENCE_BODY_HINT} ${SEQUENCE_DELAY_HINT}`;
 
 export const campaignsUpdateCommand: CommandDefinition = {
   name: 'campaigns_update',
@@ -8,7 +15,7 @@ export const campaignsUpdateCommand: CommandDefinition = {
   subcommand: 'update',
   description:
     'Update an existing campaign. Pass any fields you want to change — name, tracking, sequences, schedule, senders, daily limits, etc. ' +
-    SEQUENCE_BODY_HINT,
+    SEQUENCE_FIELD_HINT,
   examples: [
     'instantly campaigns update <id> --name "Updated Name"',
     'instantly campaigns update <id> --text-only --no-open-tracking --no-link-tracking',
@@ -28,7 +35,9 @@ export const campaignsUpdateCommand: CommandDefinition = {
     stop_on_auto_reply: z.boolean().optional().describe('Stop sending on auto-replies'),
     // Rate limiting
     daily_limit: z.coerce.number().optional().describe('Max emails per day per sending account'),
-    email_gap: z.coerce.number().optional().describe('Minutes between individual emails'),
+    email_gap: z.coerce.number().optional().describe(
+      'Minutes between individual sends (rate limit). Not the multi-day gap between sequence steps — that is step delay / delay_unit.',
+    ),
     // Senders
     email_list: z.preprocess(
       (v) => (typeof v === 'string' ? JSON.parse(v) : v),
@@ -38,7 +47,7 @@ export const campaignsUpdateCommand: CommandDefinition = {
     sequences: z.preprocess(
       (v) => (typeof v === 'string' ? JSON.parse(v) : v),
       z.array(z.any()).optional(),
-    ).describe(`JSON array of sequence objects with steps. ${SEQUENCE_BODY_HINT}`),
+    ).describe(`JSON array of sequence objects with steps. ${SEQUENCE_FIELD_HINT}`),
     // Schedule
     campaign_schedule: z.preprocess(
       (v) => (typeof v === 'string' ? JSON.parse(v) : v),
@@ -56,9 +65,9 @@ export const campaignsUpdateCommand: CommandDefinition = {
       { field: 'stop_on_reply', flags: '--stop-on-reply', description: 'Stop sequence on reply (use --no-stop-on-reply to continue)' },
       { field: 'stop_on_auto_reply', flags: '--stop-on-auto-reply', description: 'Stop on auto-reply (use --no-stop-on-auto-reply to ignore)' },
       { field: 'daily_limit', flags: '--daily-limit <number>', description: 'Max emails/day per account' },
-      { field: 'email_gap', flags: '--email-gap <minutes>', description: 'Minutes between emails' },
+      { field: 'email_gap', flags: '--email-gap <minutes>', description: 'Minutes between individual sends (rate limit), not the step gap' },
       { field: 'email_list', flags: '--email-list <json>', description: 'Sender emails (JSON array)' },
-      { field: 'sequences', flags: '--sequences <json>', description: SEQUENCE_BODY_HINT },
+      { field: 'sequences', flags: '--sequences <json>', description: SEQUENCE_FIELD_HINT },
       { field: 'campaign_schedule', flags: '--schedule <json>', description: 'Schedule (JSON object)' },
     ],
   },
@@ -83,13 +92,18 @@ export const campaignsUpdateCommand: CommandDefinition = {
     const { id, ...fields } = input;
     // Only send fields that were explicitly provided
     const body: Record<string, any> = {};
+    let sequences: Record<string, unknown>[] | undefined;
     for (const [key, value] of Object.entries(fields)) {
       if (value !== undefined) {
-        body[key] = key === 'sequences'
-          ? normalizeSequenceBodies(value, fields.text_only === true)
-          : value;
+        if (key === 'sequences') {
+          sequences = validateAndNormalizeSequences(value, 'campaign');
+          body[key] = normalizeSequenceBodies(sequences, fields.text_only === true);
+        } else {
+          body[key] = value;
+        }
       }
     }
-    return client.patch(`/campaigns/${encodeURIComponent(id)}`, body);
+    const updated = await client.patch(`/campaigns/${encodeURIComponent(id)}`, body);
+    return sequences ? withSequenceTimeline(updated, sequences, 'campaign') : updated;
   },
 };

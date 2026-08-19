@@ -608,7 +608,7 @@ MCP config for your AI assistant:
 
 Instantly renders email bodies as HTML. Plain text with `\n` newlines will render as a single unbroken block in recipients' email clients.
 
-**The CLI auto-converts plain text to HTML** in `email reply`, `email forward`, and `leads bulk-add` (for custom_variables with `body` in the key name). For campaigns and subsequences: Instantly delivers HTML. Pass readable copy with real line breaks in each variant body; the CLI converts plain-text newlines to `<br/>`/`<p>`. Do not write a run-on string. Existing HTML is left unchanged. Skipped when text_only. Same Instantly `body` key — do not invent another field. If you're building reply/forward bodies yourself, follow these rules:
+**The CLI auto-converts plain text to HTML** in `email reply`, `email forward`, and `leads bulk-add` (for custom_variables with `body` in the key name). For campaigns and subsequences: Instantly delivers HTML. Pass readable copy with real line breaks in each variant body; the CLI converts plain-text newlines to `<br/>`/`<p>`. Do not write a run-on string. Existing HTML is left unchanged. Skipped when text_only. Same Instantly `body` key — do not invent another field. delay on step N waits before step N+1. First email does not wait. Pass delay_unit. Instantly uses only sequences[0]. Do not set pre_delay on a normal campaign. email_gap is a rate limit, not the step gap. If you're building reply/forward bodies yourself, follow these rules:
 
 - Each paragraph → `<div>paragraph text</div>`
 - Blank line → `<div><br /></div>`

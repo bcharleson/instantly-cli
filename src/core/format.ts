@@ -74,6 +74,8 @@ export const SEQUENCE_BODY_HINT =
   'the CLI converts plain-text newlines to <br/>/<p>. Do not write a run-on string. ' +
   'Existing HTML is left unchanged. Skipped when text_only.';
 
+export { SEQUENCE_DELAY_HINT } from './sequences.js';
+
 /**
  * Walk Instantly `sequences[].steps[].variants[].body` (same `body` key the
  * API already uses). Skipped when `textOnly` is true.
