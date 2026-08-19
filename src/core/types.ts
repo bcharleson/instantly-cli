@@ -79,6 +79,9 @@ export interface PaginatedResponse<T> {
 
 export interface InstantlyConfig {
   api_key: string;
+  workspace_id?: string;
+  workspace_name?: string;
+  /** Legacy nested shape; prefer workspace_id / workspace_name. */
   workspace?: {
     id: string;
     name: string;

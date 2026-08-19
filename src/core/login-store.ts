@@ -40,16 +40,22 @@ export async function persistLoginSession(options: {
     };
   }
 
+  if (!options.workspace?.id) {
+    throw new ValidationError(
+      'Cannot save default login without a live workspace id. ' +
+        'The API key did not return workspace details. No files were written.',
+    );
+  }
   await saveConfig({
     api_key: options.apiKey,
-    workspace: options.workspace
-      ? { id: options.workspace.id, name: options.workspace.name }
-      : undefined,
+    workspace_id: options.workspace.id,
+    workspace_name: options.workspace.name,
+    workspace: { id: options.workspace.id, name: options.workspace.name },
   });
   return {
     stored_at: getConfigPath(),
-    workspace_id: options.workspace?.id,
-    workspace_name: options.workspace?.name,
+    workspace_id: options.workspace.id,
+    workspace_name: options.workspace.name,
   };
 }
 

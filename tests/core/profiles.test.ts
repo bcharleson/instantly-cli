@@ -9,7 +9,7 @@ import {
   loadProfile,
   saveProfile,
 } from '../../src/core/profiles.js';
-import { loadConfig } from '../../src/core/config.js';
+import { loadConfig, saveConfig } from '../../src/core/config.js';
 
 const ACME_WORKSPACE = '11111111-1111-4111-8111-111111111111';
 const CLIENT_A_WORKSPACE = '22222222-2222-4222-8222-222222222222';
@@ -36,6 +36,10 @@ describe('profile slugs', () => {
     expect(() => assertProfileSlug('../config')).toThrow('Invalid profile slug');
     expect(() => assertProfileSlug('Acme')).toThrow('Invalid profile slug');
     expect(() => assertProfileSlug('client/a')).toThrow('Invalid profile slug');
+  });
+
+  it('reserves default for config.json', () => {
+    expect(() => assertProfileSlug('default')).toThrow(/reserved/);
   });
 });
 
@@ -75,9 +79,48 @@ describe('profile store', () => {
 
       const listed = await listProfiles();
       expect(listed).toEqual([
-        { slug: 'acme', workspace_id: ACME_WORKSPACE, workspace_name: 'Acme Workspace' },
-        { slug: 'client-a', workspace_id: CLIENT_A_WORKSPACE, workspace_name: 'Client A' },
+        {
+          profile: 'acme',
+          slug: 'acme',
+          workspace_id: ACME_WORKSPACE,
+          workspace_name: 'Acme Workspace',
+          source: 'profile (acme)',
+        },
+        {
+          profile: 'client-a',
+          slug: 'client-a',
+          workspace_id: CLIENT_A_WORKSPACE,
+          workspace_name: 'Client A',
+          source: 'profile (client-a)',
+        },
       ]);
+      expect(JSON.stringify(listed)).not.toContain('secret');
+    });
+  });
+
+  it('includes default from config.json with the same list shape', async () => {
+    await withHome(async () => {
+      await saveConfig({
+        api_key: 'default-key',
+        workspace_id: ACME_WORKSPACE,
+        workspace_name: 'Acme Workspace',
+      });
+      await saveProfile('client-a', {
+        api_key: 'secret-b',
+        workspace_id: CLIENT_A_WORKSPACE,
+        workspace_name: 'Client A',
+      });
+
+      const listed = await listProfiles();
+      expect(listed[0]).toMatchObject({
+        profile: 'default',
+        slug: 'default',
+        workspace_id: ACME_WORKSPACE,
+        workspace_name: 'Acme Workspace',
+      });
+      expect(listed[0].source).toContain('stored config');
+      expect(listed.map((item) => item.profile)).toEqual(['default', 'client-a']);
+      expect(JSON.stringify(listed)).not.toContain('default-key');
       expect(JSON.stringify(listed)).not.toContain('secret');
     });
   });
@@ -103,6 +146,8 @@ describe('persistLoginSession', () => {
 
       const config = JSON.parse(await readFile(join(home, 'config.json'), 'utf-8'));
       expect(config.api_key).toBe('default-key');
+      expect(config.workspace_id).toBe(ACME_WORKSPACE);
+      expect(config.workspace_name).toBe('Default Workspace');
       expect(config.workspace).toEqual({ id: ACME_WORKSPACE, name: 'Default Workspace' });
       expect((await stat(join(home, 'config.json'))).mode & 0o777).toBe(0o600);
       expect(await loadProfile('acme')).toBeNull();
@@ -131,6 +176,19 @@ describe('persistLoginSession', () => {
       expect(profile.api_key).toBe('acme-key');
       expect(profile.workspace_id).toBe(ACME_WORKSPACE);
       expect(profile.workspace_name).toBe('Acme Workspace');
+    });
+  });
+
+  it('refuses to write default login without a live workspace id', async () => {
+    await withHome(async (home) => {
+      await expect(
+        persistLoginSession({
+          apiKey: 'default-key',
+          workspace: null,
+        }),
+      ).rejects.toThrow('Cannot save default login');
+      expect(await loadConfig()).toBeNull();
+      await expect(readFile(join(home, 'config.json'), 'utf-8')).rejects.toThrow();
     });
   });
 

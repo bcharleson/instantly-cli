@@ -92,10 +92,10 @@ instantly campaigns list
 
 ```bash
 instantly login
-# Prompts for your API key, validates it, saves to ~/.instantly/config.json
+# Prompts for your API key, validates it, stamps api_key + workspace_id + workspace_name onto ~/.instantly/config.json
 ```
 
-`npx instantly-cli campaigns list` keeps working with one key.
+`npx instantly-cli campaigns list` keeps working with one key. `--profile` is not required for old single-key users.
 
 ### Opt-in workspace profiles (agency / agent mode)
 
@@ -132,14 +132,14 @@ instantly profile whoami
 instantly profile remove acme
 ```
 
-`instantly status` / `whoami` always prints credential source, profile slug (if any), workspace id, and workspace name.
+`instantly status` / `whoami` / `profile list` always print `profile` (slug or `default`), `workspace_id`, `workspace_name`, and `source`. Confirm this bound pair before campaigns, health, or writes. Agencies should `login --profile <client>` for every key, including the house org.
 
 Every existing command group (campaigns, leads, accounts, email, analytics, health, webhooks, oauth, …) uses this same resolver. There is no second, profile-only API.
 
 After merge, dogfood with fake slugs `client-a` / `client-b` (your real keys stay local):
 
 ```bash
-instantly status                                          # default: one workspace, profile null
+instantly status                                          # default: profile "default" + bound workspace id/name
 instantly login --profile client-a --api-key "$CLIENT_A_KEY"
 # confirm ~/.instantly/config.json is unchanged
 instantly --profile client-a status                       # prints bound workspace id + name
@@ -660,7 +660,7 @@ Add to your MCP settings (Claude Desktop, Cursor, VS Code, Windsurf):
 }
 ```
 
-Mutating MCP tools accept `profile` and/or `workspace_id` and abort on mismatch. Use `INSTANTLY_PROFILE` for a single-workspace agent process. There is no “run across all profiles” tool.
+Every MCP tool description says pass `profile` for agency. Mutating tools require `profile` + `workspace_id` matching the bound pair. Use `INSTANTLY_PROFILE` for a single-profile agent process. Call `status` first. There is no “run across all profiles” tool.
 
 ```json
 {

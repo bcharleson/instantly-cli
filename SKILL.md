@@ -1,13 +1,17 @@
 ---
 name: instantly-cli
-description: Use the Instantly CLI and MCP server for cold email campaigns, leads, accounts, and inbox. Default is one workspace. Agency mode is one named profile per process.
+description: Use the Instantly CLI and MCP server for cold email campaigns, leads, accounts, and inbox. Name every client as a profile. Confirm status (slug, workspace_id, workspace_name) before other commands. One process, one profile.
 ---
 
 # Instantly CLI — agent skill
 
 Public CLI (`npm i -g instantly-cli`). JSON on stdout. Node.js 18+.
 
-## Default: one workspace
+**Name every client as a profile.** Confirm `status` / `whoami` (`profile`, `workspace_id`, `workspace_name`, `source`) before campaigns, health, or writes. One process, one profile. Never print or commit raw API keys.
+
+## Default: one workspace (existing npm users)
+
+`--profile` is **not** required for old single-key users.
 
 Resolve order **without** `--profile` / `INSTANTLY_PROFILE`:
 
@@ -16,17 +20,20 @@ Resolve order **without** `--profile` / `INSTANTLY_PROFILE`:
 3. cwd `.env` `INSTANTLY_API_KEY`
 4. `~/.instantly/config.json` from `instantly login`
 
+`instantly login` stamps `{ api_key, workspace_id, workspace_name }` onto `~/.instantly/config.json` (mode 0600). `status` / `whoami` print `profile: "default"` plus that bound pair — not null.
+
 ```bash
 export INSTANTLY_API_KEY="your-key"
 instantly status
+# confirm profile, workspace_id, workspace_name, then:
 instantly campaigns list
 ```
 
-`instantly login` writes only `~/.instantly/config.json` `{ api_key }` (mode 0600).
+When `--workspace` is passed on this path, live id must match or the command aborts. Omitted: no extra flag required.
 
-## Agency: one profile, one workspace
+## Agency: name every client (including the house org)
 
-Opt-in. Profiles live **beside** default config, never inside it:
+Agencies should `login --profile <client>` for **every** key, including the house org. The slug is the client name agents use.
 
 `~/.instantly/profiles/<slug>.json` = `{ api_key, workspace_id, workspace_name }` (mode 0600)
 
@@ -37,6 +44,7 @@ instantly login --profile client-b --api-key "$CLIENT_B_KEY"
 
 export INSTANTLY_PROFILE=client-a
 instantly status
+# confirm slug + workspace_id + workspace_name, then:
 instantly health
 instantly campaigns list
 ```
@@ -45,12 +53,12 @@ Or per command: `--profile client-a`.
 
 **Hard rails**
 
-- One process, one workspace. No `--all-profiles`. No `WORKSPACE_KEYS`. Do not iterate `~/.instantly/profiles`.
+- One process, one profile. No `--all-profiles`. No `WORKSPACE_KEYS`. Do not iterate `~/.instantly/profiles`.
 - When a profile is selected, it wins over a leftover cwd `.env` `INSTANTLY_API_KEY`.
-- Every profiled command re-fetches the live workspace. If live `workspace.id` ≠ bound `workspace_id`, abort.
-- Writes require `--workspace <uuid>` matching the bound id (CLI) or `workspace_id` (MCP). Mismatch → abort.
-- When `--workspace` is passed on any path (default or profile), live id must match or the command aborts. Omitted on the default single-key path: no extra flag required.
-- `status` / `whoami` always print credential source, profile slug (if any), workspace id, and workspace name.
+- Reads and writes under `--profile` re-fetch the live workspace. If live id ≠ bound id, abort.
+- Writes also require `--workspace <uuid>` matching the bound id (CLI) or `workspace_id` (MCP).
+- When `--workspace` is passed on any path (default or profile), live id must match or abort.
+- `profile list` / `status` / `whoami` always return `profile` (slug or `default`), `workspace_id`, `workspace_name`, `source`. Keys are redacted.
 
 ```bash
 instantly --profile client-a --workspace "$CLIENT_A_WORKSPACE_ID" \
@@ -88,7 +96,7 @@ The same convert-for-you path applies to `email reply`, `email forward`, and `le
 
 ## MCP
 
-One MCP server process per workspace. Set `INSTANTLY_PROFILE=client-a` (or `INSTANTLY_API_KEY` for the default single-key workspace). Mutating tools require `workspace_id` matching the bound id when a profile is selected. There is no “run across all profiles” tool.
+One MCP server process per profile. Set `INSTANTLY_PROFILE=client-a` (or `INSTANTLY_API_KEY` for the default single-key workspace). Every tool description says pass `profile` for agency. Mutating tools require `profile` + `workspace_id` matching the bound pair. Call `status` first. There is no “run across all profiles” tool.
 
 ```json
 {

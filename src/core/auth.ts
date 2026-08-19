@@ -12,10 +12,33 @@ export type CredentialSource =
   | 'stored config'
   | 'profile';
 
+export interface BoundWorkspace {
+  id: string;
+  name: string;
+}
+
 export interface ResolvedCredentials {
   apiKey: string;
   source: string;
   profile?: InstantlyProfile & { slug: string };
+  /** Bound pair from a named profile or stamped default config.json. */
+  boundWorkspace?: BoundWorkspace;
+}
+
+export function displayProfileSlug(credentials: { profile?: { slug: string } }): string {
+  return credentials.profile?.slug ?? 'default';
+}
+
+export function boundWorkspaceOf(
+  credentials: ResolvedCredentials,
+): BoundWorkspace | undefined {
+  if (credentials.profile?.workspace_id) {
+    return {
+      id: credentials.profile.workspace_id,
+      name: credentials.profile.workspace_name,
+    };
+  }
+  return credentials.boundWorkspace;
 }
 
 export interface ResolveCredentialsOptions {
@@ -92,13 +115,18 @@ export async function resolveCredentials(
       );
     }
     const profile = { ...stored, slug };
+    const boundWorkspace = {
+      id: stored.workspace_id,
+      name: stored.workspace_name,
+    };
     if (opts.apiKey) {
-      return { apiKey: opts.apiKey, source: '--api-key flag', profile };
+      return { apiKey: opts.apiKey, source: '--api-key flag', profile, boundWorkspace };
     }
     return {
       apiKey: stored.api_key,
       source: `profile (${slug})`,
       profile,
+      boundWorkspace,
     };
   }
 
@@ -120,7 +148,13 @@ export async function resolveCredentials(
 
   const config = await loadConfig();
   if (config?.api_key) {
-    return { apiKey: config.api_key, source: `stored config (${getConfigPath()})` };
+    return {
+      apiKey: config.api_key,
+      source: `stored config (${getConfigPath()})`,
+      boundWorkspace: config.workspace_id
+        ? { id: config.workspace_id, name: config.workspace_name ?? '' }
+        : undefined,
+    };
   }
 
   throw new AuthError(

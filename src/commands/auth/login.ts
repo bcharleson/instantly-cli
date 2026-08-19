@@ -3,9 +3,8 @@ import { InstantlyClient } from '../../core/client.js';
 import { resolveProvidedApiKey } from '../../core/auth.js';
 import { output, outputError } from '../../core/output.js';
 import { persistLoginSession, defaultConfigHintPath, defaultProfileHintPath } from '../../core/login-store.js';
-import { fetchLiveWorkspace, normalizeWorkspace } from '../../core/workspace.js';
+import { fetchLiveWorkspace } from '../../core/workspace.js';
 import type { GlobalOptions } from '../../core/types.js';
-import type { LiveWorkspace } from '../../core/workspace.js';
 
 async function promptForApiKey(): Promise<string | undefined> {
   const [major] = process.versions.node.split('.').map(Number);
@@ -22,7 +21,10 @@ async function promptForApiKey(): Promise<string | undefined> {
 export function registerLoginCommand(program: Command): void {
   program
     .command('login')
-    .description('Authenticate with your Instantly API key')
+    .description(
+      'Authenticate and bind this API key to the live workspace id and name. ' +
+        'Default writes ~/.instantly/config.json. --profile <slug> writes only ~/.instantly/profiles/<slug>.json.',
+    )
     .option('--api-key <key>', 'API key (skips interactive prompt)')
     .option(
       '--profile <slug>',
@@ -59,21 +61,8 @@ export function registerLoginCommand(program: Command): void {
           console.log('Validating API key...');
         }
 
-        let workspaceInfo: LiveWorkspace | null = null;
-        if (profileSlug) {
-          // Profile login is fail-closed: a live workspace id is required to bind the file.
-          workspaceInfo = await fetchLiveWorkspace(client);
-        } else {
-          try {
-            workspaceInfo = await fetchLiveWorkspace(client);
-          } catch {
-            try {
-              workspaceInfo = normalizeWorkspace(await client.get('/workspace'));
-            } catch {
-              workspaceInfo = null;
-            }
-          }
-        }
+        // Bind the live workspace to this key (default config or named profile).
+        const workspaceInfo = await fetchLiveWorkspace(client);
 
         const persisted = await persistLoginSession({
           apiKey,
@@ -87,7 +76,7 @@ export function registerLoginCommand(program: Command): void {
 
         const result = {
           status: 'authenticated',
-          profile: profileSlug ?? null,
+          profile: profileSlug ?? 'default',
           workspace: workspaceInfo?.name ?? 'unknown',
           workspace_id: workspaceInfo?.id ?? null,
           workspace_name: workspaceInfo?.name ?? null,
@@ -97,9 +86,7 @@ export function registerLoginCommand(program: Command): void {
 
         if (globalOpts.output === 'pretty' || process.stdin.isTTY) {
           console.log(`\nAuthenticated successfully!`);
-          if (profileSlug) {
-            console.log(`Profile: ${profileSlug}`);
-          }
+          console.log(`Profile: ${profileSlug ?? 'default'}`);
           if (workspaceInfo?.name) {
             console.log(`Workspace: ${workspaceInfo.name}`);
           }

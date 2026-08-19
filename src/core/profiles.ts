@@ -1,6 +1,6 @@
 import { readFile, writeFile, mkdir, rm, readdir, chmod } from 'node:fs/promises';
 import { join } from 'node:path';
-import { getConfigDir } from './config.js';
+import { getConfigDir, getConfigPath, loadConfig } from './config.js';
 import { ValidationError } from './errors.js';
 import type { InstantlyProfile } from './types.js';
 
@@ -11,6 +11,12 @@ export function assertProfileSlug(slug: string): string {
     throw new ValidationError(
       `Invalid profile slug '${slug}'. Use a lowercase slug like acme or client-a ` +
         `(letters, numbers, hyphens; 1–64 characters).`,
+    );
+  }
+  if (slug === 'default') {
+    throw new ValidationError(
+      `'default' is reserved for ~/.instantly/config.json. ` +
+        'Use instantly login --profile <client> to name a workspace.',
     );
   }
   return slug;
@@ -77,24 +83,53 @@ export async function deleteProfile(slug: string): Promise<boolean> {
 }
 
 export interface ProfileListItem {
+  profile: string;
   slug: string;
   workspace_id: string;
   workspace_name: string;
+  source: string;
+}
+
+function listItem(
+  profile: string,
+  workspaceId: string,
+  workspaceName: string,
+  source: string,
+): ProfileListItem {
+  return {
+    profile,
+    slug: profile,
+    workspace_id: workspaceId,
+    workspace_name: workspaceName,
+    source,
+  };
 }
 
 /**
- * List profile metadata only. Never returns API keys.
+ * List bound workspaces (default config + named profiles). Never returns API keys.
  * Does not call the Instantly API — one process still equals one workspace.
  */
 export async function listProfiles(): Promise<ProfileListItem[]> {
+  const items: ProfileListItem[] = [];
+  const config = await loadConfig();
+  if (config?.api_key) {
+    items.push(
+      listItem(
+        'default',
+        config.workspace_id ?? '',
+        config.workspace_name ?? '',
+        `stored config (${getConfigPath()})`,
+      ),
+    );
+  }
+
   let names: string[];
   try {
     names = await readdir(getProfilesDir());
   } catch {
-    return [];
+    return items;
   }
 
-  const items: ProfileListItem[] = [];
   for (const name of names) {
     if (!name.endsWith('.json')) continue;
     const slug = name.slice(0, -5);
@@ -105,11 +140,13 @@ export async function listProfiles(): Promise<ProfileListItem[]> {
     }
     const profile = await loadProfile(slug);
     if (!profile) continue;
-    items.push({
-      slug,
-      workspace_id: profile.workspace_id,
-      workspace_name: profile.workspace_name,
-    });
+    items.push(
+      listItem(slug, profile.workspace_id, profile.workspace_name, `profile (${slug})`),
+    );
   }
-  return items.sort((a, b) => a.slug.localeCompare(b.slug));
+  return items.sort((a, b) => {
+    if (a.profile === 'default') return -1;
+    if (b.profile === 'default') return 1;
+    return a.profile.localeCompare(b.profile);
+  });
 }

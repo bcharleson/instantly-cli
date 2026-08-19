@@ -89,6 +89,25 @@ describe('login --profile persists a profile file', () => {
     await expect(access(join(home, 'config.json'))).rejects.toThrow();
   }
 
+  it('login without --profile stamps workspace_id and workspace_name onto config.json', async () => {
+    await run(['login', '--api-key', FAKE_KEY]);
+    expect(process.exitCode ?? 0).toBe(0);
+    const config = JSON.parse(await readFile(join(home, 'config.json'), 'utf-8'));
+    expect(config.api_key).toBe(FAKE_KEY);
+    expect(config.workspace_id).toBe(ACME_WORKSPACE);
+    expect(config.workspace_name).toBe('Acme Workspace');
+    await expect(access(join(home, 'profiles', 'acme.json'))).rejects.toThrow();
+
+    stdout.length = 0;
+    await run(['status']);
+    const status = JSON.parse(stdout.join('\n'));
+    expect(status.profile).toBe('default');
+    expect(status.workspace_id).toBe(ACME_WORKSPACE);
+    expect(status.workspace_name).toBe('Acme Workspace');
+    expect(status.source).toContain('stored config');
+    expect(JSON.stringify(status)).not.toContain(FAKE_KEY);
+  });
+
   it('login --profile acme --api-key <fake> writes the profile and not config.json', async () => {
     await run(['login', '--profile', 'acme', '--api-key', FAKE_KEY]);
     await expectAcmeProfilePersisted();

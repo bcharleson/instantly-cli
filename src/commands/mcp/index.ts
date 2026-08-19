@@ -36,10 +36,10 @@ MCP Configuration:
     }
   }
 
-  Agency/agent mode (one workspace per process):
-  set INSTANTLY_PROFILE=<slug> after "instantly login --profile <slug>".
-  Mutating tools also require workspace_id matching the bound workspace.
-  There is no all-profiles tool.`)
+  Agency: name every client as a profile (login --profile <client>).
+  set INSTANTLY_PROFILE=<slug>. Every tool accepts profile.
+  Mutating tools require profile + workspace_id matching the bound pair.
+  Call status first (slug, workspace_id, workspace_name). One process, one profile.`)
     .action(async () => {
       process.on('SIGINT', () => process.exit(0));
       process.on('SIGTERM', () => process.exit(0));

@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { InstantlyClient } from '../../core/client.js';
-import { resolveCredentials } from '../../core/auth.js';
+import { boundWorkspaceOf, displayProfileSlug, resolveCredentials } from '../../core/auth.js';
 import { fetchLiveWorkspace } from '../../core/workspace.js';
 import { AuthError, WorkspaceMismatchError } from '../../core/errors.js';
 import { output, outputError } from '../../core/output.js';
@@ -27,7 +27,7 @@ export async function buildAuthStatus(opts: {
       return {
         authenticated: false,
         source: null,
-        profile: opts.profile ?? process.env.INSTANTLY_PROFILE ?? null,
+        profile: opts.profile ?? process.env.INSTANTLY_PROFILE ?? 'default',
         workspace_id: null,
         workspace_name: null,
         error: error.message,
@@ -41,26 +41,28 @@ export async function buildAuthStatus(opts: {
 
   try {
     const workspace = await fetchLiveWorkspace(client);
-    if (credentials.profile && workspace.id !== credentials.profile.workspace_id) {
+    const bound = boundWorkspaceOf(credentials);
+    const profile = displayProfileSlug(credentials);
+    if (bound && workspace.id !== bound.id) {
       return {
         authenticated: false,
         source: credentials.source,
-        profile: credentials.profile.slug,
+        profile,
         api_key: masked,
         workspace_id: workspace.id,
         workspace_name: workspace.name,
-        bound_workspace_id: credentials.profile.workspace_id,
-        bound_workspace_name: credentials.profile.workspace_name,
+        bound_workspace_id: bound.id,
+        bound_workspace_name: bound.name,
         error:
-          `Profile '${credentials.profile.slug}' is bound to workspace ` +
-          `${credentials.profile.workspace_id}, but the API key resolves to ${workspace.id}.`,
+          `Profile '${profile}' is bound to workspace ${bound.id}` +
+          `${bound.name ? ` (${bound.name})` : ''}, but the API key resolves to ${workspace.id}.`,
       };
     }
 
     return {
       authenticated: true,
       source: credentials.source,
-      profile: credentials.profile?.slug ?? null,
+      profile,
       api_key: masked,
       workspace_id: workspace.id,
       workspace_name: workspace.name,
@@ -72,13 +74,14 @@ export async function buildAuthStatus(opts: {
     };
   } catch (verifyErr: unknown) {
     const msg = verifyErr instanceof Error ? verifyErr.message : String(verifyErr);
+    const bound = boundWorkspaceOf(credentials);
     return {
       authenticated: false,
       source: credentials.source,
-      profile: credentials.profile?.slug ?? null,
+      profile: displayProfileSlug(credentials),
       api_key: masked,
-      workspace_id: credentials.profile?.workspace_id ?? null,
-      workspace_name: credentials.profile?.workspace_name ?? null,
+      workspace_id: bound?.id ?? null,
+      workspace_name: bound?.name ?? null,
       error: `Key found but verification failed: ${msg}`,
     };
   }
@@ -94,7 +97,7 @@ export function registerStatusCommand(program: Command): void {
     .alias('whoami')
     .description(
       'Show which credential source is active and verify the workspace it resolves to. ' +
-        'Checks --api-key, --profile / INSTANTLY_PROFILE, INSTANTLY_API_KEY, .env, and ~/.instantly/config.json.',
+        'Print profile slug (or default), workspace_id, workspace_name, and source. Confirm this bound pair before other commands.',
     )
     .action(async () => {
       const globalOpts = program.opts() as GlobalOptions;

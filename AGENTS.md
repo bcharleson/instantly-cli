@@ -21,10 +21,12 @@ instantly campaigns list
 
 ## Authentication
 
-Set your API key via environment variable — no interactive login needed:
+`--profile` is **not** required for old single-key users. Set your API key via environment variable:
 
 ```bash
 export INSTANTLY_API_KEY="your-api-key-here"
+instantly status
+# confirm profile ("default"), workspace_id, workspace_name, then continue
 ```
 
 Or pass it per-command:
@@ -33,20 +35,20 @@ Or pass it per-command:
 instantly campaigns list --api-key "your-api-key-here"
 ```
 
-API keys are generated from: https://app.instantly.ai/app/settings/integrations
+`instantly login` stamps `{ api_key, workspace_id, workspace_name }` onto `~/.instantly/config.json`. API keys are generated from: https://app.instantly.ai/app/settings/integrations
 
 ## Multi-workspace profiles (agency / agents)
 
-Default mode is still **one workspace** (`INSTANTLY_API_KEY` or `instantly login`). Profiles are opt-in and isolate client keys.
+**Name every client as a profile**, including the house org. The slug is the client name. Agencies should `login --profile <client>` for every key. Confirm `status` / `whoami` (`profile`, `workspace_id`, `workspace_name`, `source`) before campaigns, health, or writes. One process, one profile.
 
-**Hard rails:** one process, one workspace. Never loop profiles. Never pass comma-separated keys. There is no `--all-profiles`.
+**Hard rails:** one process, one profile. Never loop profiles. Never pass comma-separated keys. There is no `--all-profiles`.
 
 ```bash
 # Bind a client workspace (does not write ~/.instantly/config.json)
 instantly login --profile client-a --api-key "$CLIENT_A_KEY"
 instantly login --profile client-b --api-key "$CLIENT_B_KEY"
 
-# Every command group works on that one workspace
+# Confirm the bound pair first
 export INSTANTLY_PROFILE=client-a
 instantly status
 instantly campaigns list
@@ -59,9 +61,9 @@ instantly --profile client-a --workspace "$CLIENT_A_WORKSPACE_ID" \
   campaigns activate "$CAMPAIGN_ID"
 ```
 
-If live `workspace.id` ≠ the profile's bound id, the command aborts. When `--workspace` is passed on any path (default or profile), live id must match or the command aborts. Omitted on the default single-key path: no extra flag required. A leftover cwd `.env` `INSTANTLY_API_KEY` does not override `--profile` / `INSTANTLY_PROFILE`.
+Reads and writes under `--profile` re-fetch the live workspace. If live `workspace.id` ≠ the bound id, the command aborts. Writes also require `--workspace` matching the bound id. When `--workspace` is passed on any path (default or profile), live id must match or the command aborts. Omitted on the default single-key path: no extra flag required. A leftover cwd `.env` `INSTANTLY_API_KEY` does not override `--profile` / `INSTANTLY_PROFILE`.
 
-MCP: start one server per workspace (`INSTANTLY_PROFILE=client-a`). Mutating tools require `workspace_id` matching the bound id.
+MCP: start one server per profile (`INSTANTLY_PROFILE=client-a`). Every tool accepts `profile`. Mutating tools require `profile` + `workspace_id` matching the bound pair.
 
 ## Output Format
 
@@ -586,7 +588,7 @@ instantly campaigns list --limit 10 --starting-after "<last-id>"
 
 ## MCP Server (for Claude, Cursor, VS Code)
 
-The CLI also includes a built-in MCP server exposing all 156 commands as tools. One MCP server process per workspace.
+The CLI also includes a built-in MCP server exposing all 156 commands as tools. One MCP server process per profile. Every tool description says pass `profile` for agency. Mutating tools require `profile` + `workspace_id` matching the bound pair. Call `status` first.
 
 ```bash
 # Start the MCP server
@@ -606,7 +608,7 @@ Default (one workspace):
 }
 ```
 
-Agency: set `INSTANTLY_PROFILE=client-a` instead of a key. Mutating tools require `workspace_id` matching the bound id. There is no all-profiles MCP tool.
+Agency: set `INSTANTLY_PROFILE=client-a` instead of a key. Mutating tools require `profile` + `workspace_id` matching the bound pair. There is no all-profiles MCP tool.
 
 ## Email Body Formatting
 
@@ -648,6 +650,6 @@ delay on step N waits before step N+1. First email does not wait. Pass delay_uni
 11. **Use `campaigns search-by-contact`** to find which campaigns a lead is in — accepts email as positional arg
 12. **Use `--to` on email reply** and `--expect-from` on email forward to validate recipients before sending
 13. **Use `bulk-activate` / `bulk-pause`** to manage multiple campaigns at once
-14. **One process, one workspace** — set `INSTANTLY_PROFILE` or `--profile` for a single client; do not iterate `~/.instantly/profiles`
-15. **Writes under a profile require `--workspace`** matching the bound UUID (campaign activate/pause, leads bulk-add, email reply, oauth connect, and other mutations)
-16. **`instantly status` / `health`** report credential source, profile slug, and workspace id/name — check these before mutating
+14. **Name every client as a profile** — agencies `login --profile <client>` for every key, including the house org. One process, one profile; do not iterate `~/.instantly/profiles`
+15. **Confirm `status` / `whoami` first** — `profile` (slug or `default`), `workspace_id`, `workspace_name`, `source` — before campaigns, health, or writes
+16. **Writes under a profile require `--workspace`** matching the bound UUID (campaign activate/pause, leads bulk-add, email reply, oauth connect, and other mutations)

@@ -1,6 +1,8 @@
 import { Command } from 'commander';
 import { InstantlyClient } from '../../core/client.js';
+import { boundWorkspaceOf, displayProfileSlug } from '../../core/auth.js';
 import { createCommandContext } from '../../core/command-context.js';
+import { fetchLiveWorkspace } from '../../core/workspace.js';
 import { output, outputError } from '../../core/output.js';
 import type { GlobalOptions } from '../../core/types.js';
 
@@ -115,12 +117,21 @@ export function registerHealthCommand(program: Command): void {
           mutating: false,
         });
         const report = await runHealth(ctx.client);
+        const bound = boundWorkspaceOf(ctx.credentials);
+        let live = ctx.liveWorkspace;
+        if (!live) {
+          try {
+            live = await fetchLiveWorkspace(ctx.client);
+          } catch {
+            live = bound ? { id: bound.id, name: bound.name } : undefined;
+          }
+        }
         output(
           {
             source: ctx.credentials.source,
-            profile: ctx.credentials.profile?.slug ?? null,
-            workspace_id: ctx.liveWorkspace?.id ?? ctx.credentials.profile?.workspace_id ?? null,
-            workspace_name: ctx.liveWorkspace?.name ?? ctx.credentials.profile?.workspace_name ?? null,
+            profile: displayProfileSlug(ctx.credentials),
+            workspace_id: live?.id ?? bound?.id ?? null,
+            workspace_name: live?.name ?? bound?.name ?? null,
             ...report,
           },
           globalOpts,

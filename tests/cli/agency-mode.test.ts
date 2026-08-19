@@ -116,10 +116,32 @@ describe('agency CLI (real program, two profiles)', () => {
     await run(['status']);
     const payload = JSON.parse(stdout.join('\n'));
     expect(payload.authenticated).toBe(true);
-    expect(payload.profile).toBeNull();
+    expect(payload.profile).toBe('default');
     expect(payload.workspace_id).toBe(CLIENT_A);
+    expect(payload.workspace_name).toBe('Default');
     expect(payload.source).toContain('stored config');
+    expect(JSON.stringify(payload)).not.toContain('default-key');
     expect(fetches.every((call) => call.key !== 'client-b-key')).toBe(true);
+  });
+
+  it('profile list returns profile, workspace_id, workspace_name, source and never the raw key', async () => {
+    await run(['profile', 'list']);
+    const listed = JSON.parse(stdout.join('\n'));
+    expect(listed.map((item: { profile: string }) => item.profile)).toEqual([
+      'default',
+      'client-a',
+      'client-b',
+    ]);
+    for (const item of listed) {
+      expect(item.workspace_id).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+      );
+      expect(item.workspace_name).toBeTruthy();
+      expect(item.source).toBeTruthy();
+    }
+    expect(stdout.join('\n')).not.toContain('default-key');
+    expect(stdout.join('\n')).not.toContain('client-a-key');
+    expect(stdout.join('\n')).not.toContain('client-b-key');
   });
 
   it('profiled status, campaigns list, and health use only client-a', async () => {

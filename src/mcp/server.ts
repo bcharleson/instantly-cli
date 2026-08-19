@@ -6,21 +6,28 @@ import { buildAuthStatus } from '../commands/auth/status.js';
 import { runHealth } from '../commands/health/index.js';
 import { createCommandContext } from '../core/command-context.js';
 import { isMutatingCommand } from '../core/mutating.js';
-import { resolveCredentials } from '../core/auth.js';
+import { boundWorkspaceOf, displayProfileSlug, resolveCredentials } from '../core/auth.js';
+import { fetchLiveWorkspace } from '../core/workspace.js';
+
+const MCP_AGENCY_READ_HINT =
+  ' Agency: pass profile (client slug). Confirm status (profile, workspace_id, workspace_name) first. One process, one profile.';
+const MCP_AGENCY_WRITE_HINT =
+  ' Agency: pass profile (client slug) and workspace_id matching that profile\'s bound workspace. Confirm status first. One process, one profile.';
 
 const isolationShape = {
   profile: z
     .string()
     .optional()
     .describe(
-      'Named workspace profile slug (~/.instantly/profiles/<slug>.json). ' +
-        'One tool call uses exactly one workspace. Do not pass multiple slugs.',
+      'Named client profile slug. Agency: pass this on every tool (or set INSTANTLY_PROFILE). ' +
+        'One process, one profile. Do not pass multiple slugs.',
     ),
   workspace_id: z
     .string()
     .optional()
     .describe(
-      'Workspace UUID confirmation. Required for mutating tools when a profile is selected (must match the bound id). When passed on the default single-key path, must match the live workspace.',
+      'Workspace UUID bound to that profile. Mutating tools require profile + workspace_id matching the bound pair. ' +
+        'On the default single-key path, when passed must match the live workspace.',
     ),
 };
 
@@ -53,7 +60,7 @@ export async function startMcpServer(): Promise<void> {
     server.registerTool(
       cmdDef.name,
       {
-        description: cmdDef.description,
+        description: `${cmdDef.description}${isMutatingCommand(cmdDef) ? MCP_AGENCY_WRITE_HINT : MCP_AGENCY_READ_HINT}`,
         inputSchema: shape,
       },
       async (args: Record<string, unknown>) => {
@@ -95,7 +102,7 @@ export async function startMcpServer(): Promise<void> {
     'status',
     {
       description:
-        'Show the active credential source, profile slug (if any), and live workspace id/name.',
+        'Show source, profile slug (or default), workspace_id, and workspace_name. Confirm this bound pair before any other command. Agency: pass profile.',
       inputSchema: {
         profile: isolationShape.profile,
       },
@@ -130,7 +137,7 @@ export async function startMcpServer(): Promise<void> {
     'health',
     {
       description:
-        'Read-only rollup of disconnected accounts, bounce totals, warmup status, and campaign sending status for the active profile or default key.',
+        'Read-only rollup of disconnected accounts, bounce totals, warmup status, and campaign sending status. Agency: pass profile. Confirm status (profile, workspace_id, workspace_name) first. One process, one profile.',
       inputSchema: isolationShape,
     },
     async (args: Record<string, unknown>) => {
@@ -142,6 +149,15 @@ export async function startMcpServer(): Promise<void> {
           mutating: false,
         });
         const report = await runHealth(ctx.client);
+        const bound = boundWorkspaceOf(ctx.credentials);
+        let live = ctx.liveWorkspace;
+        if (!live) {
+          try {
+            live = await fetchLiveWorkspace(ctx.client);
+          } catch {
+            live = bound ? { id: bound.id, name: bound.name } : undefined;
+          }
+        }
         return {
           content: [
             {
@@ -149,9 +165,9 @@ export async function startMcpServer(): Promise<void> {
               text: JSON.stringify(
                 {
                   source: ctx.credentials.source,
-                  profile: ctx.credentials.profile?.slug ?? null,
-                  workspace_id: ctx.liveWorkspace?.id ?? ctx.credentials.profile?.workspace_id ?? null,
-                  workspace_name: ctx.liveWorkspace?.name ?? ctx.credentials.profile?.workspace_name ?? null,
+                  profile: displayProfileSlug(ctx.credentials),
+                  workspace_id: live?.id ?? bound?.id ?? null,
+                  workspace_name: live?.name ?? bound?.name ?? null,
                   ...report,
                 },
                 null,

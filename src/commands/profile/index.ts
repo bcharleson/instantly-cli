@@ -51,7 +51,9 @@ export function registerProfileCommands(program: Command): void {
 
   profileCmd
     .command('list')
-    .description('List saved profile slugs and their bound workspace ids (never prints API keys)')
+    .description(
+      'List bound workspaces: profile slug (or default), workspace_id, workspace_name, source. Never prints API keys.',
+    )
     .action(async () => {
       const globalOpts = program.opts() as GlobalOptions;
       try {
