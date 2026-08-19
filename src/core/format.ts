@@ -66,9 +66,19 @@ export function normalizeInstantlyBody(text: string): string {
 }
 
 /**
+ * Agent-facing copy for MCP tool descriptions, Zod field docs, and CLI --help.
+ * Tells models to pass readable line breaks — not to hand-write HTML tags.
+ */
+export const SEQUENCE_BODY_HINT =
+  'Instantly delivers HTML. Pass readable copy with real line breaks in each variant body; ' +
+  'the CLI converts plain-text newlines to <br/>/<p>. Do not write a run-on string. ' +
+  'Existing HTML is left unchanged. Skipped when text_only.';
+
+/**
  * Walk Instantly `sequences[].steps[].variants[].body` (same `body` key the
  * API already uses). Skipped when `textOnly` is true.
  */
+
 export function normalizeSequenceBodies(
   sequences: unknown,
   textOnly = false,

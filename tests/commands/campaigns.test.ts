@@ -9,6 +9,7 @@ import { campaignsUpdateCommand } from '../../src/commands/campaigns/update.js';
 import { campaignsBulkActivateCommand } from '../../src/commands/campaigns/bulk-activate.js';
 import { campaignsBulkPauseCommand } from '../../src/commands/campaigns/bulk-pause.js';
 import { campaignsSearchByContactCommand } from '../../src/commands/campaigns/search-by-contact.js';
+import { SEQUENCE_BODY_HINT } from '../../src/core/format.js';
 
 describe('Campaign CommandDefinitions', () => {
   it('campaigns_list has correct structure', () => {
@@ -24,6 +25,18 @@ describe('Campaign CommandDefinitions', () => {
     expect(campaignsGetCommand.endpoint.path).toBe('/campaigns/{id}');
     expect(campaignsGetCommand.fieldMappings.id).toBe('path');
     expect(campaignsGetCommand.cliMappings.args?.[0].required).toBe(true);
+  });
+
+  it('surfaces the body-conversion hint on MCP description, zod, and --help', () => {
+    for (const cmd of [campaignsCreateCommand, campaignsUpdateCommand]) {
+      expect(cmd.description).toContain(SEQUENCE_BODY_HINT);
+      expect(cmd.description).toContain('real line breaks');
+      expect(cmd.description).not.toMatch(/must hand-write/i);
+      const sequencesOpt = cmd.cliMappings.options?.find((opt) => opt.field === 'sequences');
+      expect(sequencesOpt?.description).toBe(SEQUENCE_BODY_HINT);
+      const sequencesSchema = cmd.inputSchema.shape.sequences;
+      expect(sequencesSchema.description).toContain(SEQUENCE_BODY_HINT);
+    }
   });
 
   it('campaigns_create sends name in body', () => {

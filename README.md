@@ -238,21 +238,18 @@ instantly campaigns sending-status <id>               # Diagnose why a campaign 
 instantly campaigns delete <id>                       # Delete permanently
 ```
 
-Instantly variant `body` is HTML. Use `<br/>` for delivered line breaks — plain `\n` in JSON is collapsed into a run-on email. The CLI normalizes this on `campaigns create` / `update` and `subsequences create`:
+Instantly delivers HTML. Pass readable copy with real line breaks in each variant body; the CLI converts plain-text newlines to `<br/>`/`<p>`. Do not write a run-on string. Existing HTML is left unchanged. Skipped when text_only.
 
-- Already-HTML bodies (`<div>Hello</div>`, `<p>…</p>`, `<br/>`, …) are left unchanged
-- Plain text becomes `<p>…</p>` with `\n\n` → `</p><p>` and `\n` → `<br/>`
-- `--text-only` campaigns skip this (bodies stay plain text)
-- Same Instantly `body` key — no second field
+Applies to `campaigns create` / `update` and `subsequences create` (same Instantly `body` key).
 
 ```bash
-# Already HTML — stored as-is
-instantly campaigns create --name "With Sequences" --sequences \
-  '[{"steps":[{"type":"email","delay":0,"variants":[{"subject":"Hi {{first_name}}","body":"<div>Hello</div>"}]}]}]'
-
-# Plain text — CLI sends <p>Hi {{first_name}},</p><p>Worth a quick chat?</p>
+# Preferred: readable copy with real line breaks — CLI converts
 instantly campaigns create --name "Plain Body" --sequences \
   '[{"steps":[{"type":"email","delay":0,"variants":[{"subject":"Hi {{first_name}}","body":"Hi {{first_name}},\n\nWorth a quick chat?"}]}]}]'
+
+# Already tagged HTML is stored as-is
+instantly campaigns create --name "With Sequences" --sequences \
+  '[{"steps":[{"type":"email","delay":0,"variants":[{"subject":"Hi {{first_name}}","body":"<div>Hello</div>"}]}]}]'
 ```
 
 ### Leads (12)

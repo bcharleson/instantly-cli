@@ -5,6 +5,7 @@ import {
   ensureHtml,
   normalizeInstantlyBody,
   normalizeSequenceBodies,
+  SEQUENCE_BODY_HINT,
 } from '../../src/core/format.js';
 
 describe('bodyToHtml', () => {
@@ -164,5 +165,16 @@ describe('normalizeSequenceBodies', () => {
   it('does not convert when text_only is true', () => {
     const result = normalizeSequenceBodies(sequences, true) as typeof sequences;
     expect(result[0].steps[0].variants[0].body).toBe('Hello\n\nWorld');
+  });
+});
+
+describe('SEQUENCE_BODY_HINT', () => {
+  it('tells agents to pass readable line breaks, not to hand-write tags', () => {
+    expect(SEQUENCE_BODY_HINT).toContain('Instantly delivers HTML');
+    expect(SEQUENCE_BODY_HINT).toContain('real line breaks');
+    expect(SEQUENCE_BODY_HINT).toContain('converts plain-text newlines to <br/>/<p>');
+    expect(SEQUENCE_BODY_HINT).toContain('Do not write a run-on string');
+    expect(SEQUENCE_BODY_HINT).not.toMatch(/must (use|hand-write|include) <br/i);
+    expect(SEQUENCE_BODY_HINT).not.toMatch(/use `<br\/>` tags/i);
   });
 });

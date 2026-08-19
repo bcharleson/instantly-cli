@@ -1,12 +1,14 @@
 import { z } from 'zod';
 import type { CommandDefinition } from '../../core/types.js';
-import { normalizeSequenceBodies } from '../../core/format.js';
+import { normalizeSequenceBodies, SEQUENCE_BODY_HINT } from '../../core/format.js';
 
 export const subsequencesCreateCommand: CommandDefinition = {
   name: 'subsequences_create',
   group: 'subsequences',
   subcommand: 'create',
-  description: 'Create a new subsequence for a campaign. Requires JSON for conditions, schedule, and sequences.',
+  description:
+    'Create a new subsequence for a campaign. Requires JSON for conditions, schedule, and sequences. ' +
+    SEQUENCE_BODY_HINT,
   examples: [
     'instantly subsequences create --campaign-id <id> --name "Follow-up" --conditions \'{"type":"reply"}\' --schedule \'{"delay_days":3}\' --sequences \'[{"steps":[]}]\'',
   ],
@@ -16,9 +18,7 @@ export const subsequencesCreateCommand: CommandDefinition = {
     name: z.string().describe('Subsequence name'),
     conditions: z.string().describe('Trigger conditions (JSON)'),
     subsequence_schedule: z.string().describe('Schedule config (JSON)'),
-    sequences: z.string().describe(
-      'Email sequences (JSON array). Plain-text variant body values are auto-normalized to Instantly HTML (<p> / <br/>). Existing HTML is left unchanged.',
-    ),
+    sequences: z.string().describe(`Email sequences (JSON array). ${SEQUENCE_BODY_HINT}`),
   }),
 
   cliMappings: {
@@ -27,7 +27,7 @@ export const subsequencesCreateCommand: CommandDefinition = {
       { field: 'name', flags: '--name <name>', description: 'Subsequence name' },
       { field: 'conditions', flags: '--conditions <json>', description: 'Trigger conditions (JSON)' },
       { field: 'subsequence_schedule', flags: '--schedule <json>', description: 'Schedule config (JSON)' },
-      { field: 'sequences', flags: '--sequences <json>', description: 'Sequences (JSON array)' },
+      { field: 'sequences', flags: '--sequences <json>', description: SEQUENCE_BODY_HINT },
     ],
   },
 

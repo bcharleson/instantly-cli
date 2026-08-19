@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import { SEQUENCE_BODY_HINT } from '../../src/core/format.js';
 import { subsequencesListCommand } from '../../src/commands/subsequences/list.js';
 import { subsequencesCreateCommand } from '../../src/commands/subsequences/create.js';
 import { subsequencesUpdateCommand } from '../../src/commands/subsequences/update.js';
@@ -16,6 +17,13 @@ describe('Subsequence CommandDefinitions', () => {
     expect(subsequencesListCommand.endpoint.path).toBe('/subsequences');
     expect(subsequencesListCommand.paginated).toBe(true);
     expect(subsequencesListCommand.fieldMappings.parent_campaign).toBe('query');
+  });
+
+  it('surfaces the body-conversion hint on MCP description, zod, and --help', () => {
+    expect(subsequencesCreateCommand.description).toContain(SEQUENCE_BODY_HINT);
+    const sequencesOpt = subsequencesCreateCommand.cliMappings.options?.find((opt) => opt.field === 'sequences');
+    expect(sequencesOpt?.description).toBe(SEQUENCE_BODY_HINT);
+    expect(subsequencesCreateCommand.inputSchema.shape.sequences.description).toContain(SEQUENCE_BODY_HINT);
   });
 
   it('subsequences_create normalizes plain-text variant bodies', async () => {

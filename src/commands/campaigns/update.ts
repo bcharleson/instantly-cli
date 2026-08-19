@@ -1,12 +1,14 @@
 import { z } from 'zod';
 import type { CommandDefinition } from '../../core/types.js';
-import { normalizeSequenceBodies } from '../../core/format.js';
+import { normalizeSequenceBodies, SEQUENCE_BODY_HINT } from '../../core/format.js';
 
 export const campaignsUpdateCommand: CommandDefinition = {
   name: 'campaigns_update',
   group: 'campaigns',
   subcommand: 'update',
-  description: 'Update an existing campaign. Pass any fields you want to change — name, tracking, sequences, schedule, senders, daily limits, etc.',
+  description:
+    'Update an existing campaign. Pass any fields you want to change — name, tracking, sequences, schedule, senders, daily limits, etc. ' +
+    SEQUENCE_BODY_HINT,
   examples: [
     'instantly campaigns update <id> --name "Updated Name"',
     'instantly campaigns update <id> --text-only --no-open-tracking --no-link-tracking',
@@ -36,9 +38,7 @@ export const campaignsUpdateCommand: CommandDefinition = {
     sequences: z.preprocess(
       (v) => (typeof v === 'string' ? JSON.parse(v) : v),
       z.array(z.any()).optional(),
-    ).describe(
-      'JSON array of sequence objects with steps. Plain-text variant body values are auto-normalized to Instantly HTML (<p> / <br/>) unless --text-only. Existing HTML is left unchanged.',
-    ),
+    ).describe(`JSON array of sequence objects with steps. ${SEQUENCE_BODY_HINT}`),
     // Schedule
     campaign_schedule: z.preprocess(
       (v) => (typeof v === 'string' ? JSON.parse(v) : v),
@@ -58,7 +58,7 @@ export const campaignsUpdateCommand: CommandDefinition = {
       { field: 'daily_limit', flags: '--daily-limit <number>', description: 'Max emails/day per account' },
       { field: 'email_gap', flags: '--email-gap <minutes>', description: 'Minutes between emails' },
       { field: 'email_list', flags: '--email-list <json>', description: 'Sender emails (JSON array)' },
-      { field: 'sequences', flags: '--sequences <json>', description: 'Email sequences (JSON array)' },
+      { field: 'sequences', flags: '--sequences <json>', description: SEQUENCE_BODY_HINT },
       { field: 'campaign_schedule', flags: '--schedule <json>', description: 'Schedule (JSON object)' },
     ],
   },
