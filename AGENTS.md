@@ -651,5 +651,5 @@ delay on step N waits before step N+1. First email does not wait. Pass delay_uni
 12. **Use `--to` on email reply** and `--expect-from` on email forward to validate recipients before sending
 13. **Use `bulk-activate` / `bulk-pause`** to manage multiple campaigns at once
 14. **Name every client as a profile** — agencies `login --profile <client>` for every key, including the house org. One process, one profile; do not iterate `~/.instantly/profiles`
-15. **Confirm `status` / `whoami` first** — `profile` (slug or `default`), `workspace_id`, `workspace_name`, `source` — before campaigns, health, or writes
+15. **Confirm `status` / `whoami` first** — `profile` (slug or `default`), `workspace_id`, `workspace_name`, `source` — before campaigns, health, or writes. Status never prints the API key.
 16. **Writes under a profile require `--workspace`** matching the bound UUID (campaign activate/pause, leads bulk-add, email reply, oauth connect, and other mutations)

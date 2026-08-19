@@ -58,7 +58,7 @@ Or per command: `--profile client-a`.
 - Reads and writes under `--profile` re-fetch the live workspace. If live id ≠ bound id, abort.
 - Writes also require `--workspace <uuid>` matching the bound id (CLI) or `workspace_id` (MCP).
 - When `--workspace` is passed on any path (default or profile), live id must match or abort.
-- `profile list` / `status` / `whoami` always return `profile` (slug or `default`), `workspace_id`, `workspace_name`, `source`. Keys are redacted.
+- `profile list` / `status` / `whoami` always return `profile` (slug or `default`), `workspace_id`, `workspace_name`, `source`. They never print the API key (no prefix).
 
 ```bash
 instantly --profile client-a --workspace "$CLIENT_A_WORKSPACE_ID" \

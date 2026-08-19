@@ -56,7 +56,13 @@ describe('createCommandContext', () => {
         workspace: OTHER_WORKSPACE,
         mutating: true,
       }),
-    ).rejects.toThrow(/does not match the live workspace 11111111-1111-4111-8111-111111111111/);
+    ).rejects.toMatchObject({
+      name: 'WorkspaceMismatchError',
+      code: 'WORKSPACE_MISMATCH',
+      message: expect.stringMatching(
+        /does not match the live workspace 11111111-1111-4111-8111-111111111111/,
+      ),
+    });
 
     const ctx = await createCommandContext({
       workspace: ACME_WORKSPACE,

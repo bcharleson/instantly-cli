@@ -105,6 +105,7 @@ describe('login --profile persists a profile file', () => {
     expect(status.workspace_id).toBe(ACME_WORKSPACE);
     expect(status.workspace_name).toBe('Acme Workspace');
     expect(status.source).toContain('stored config');
+    expect(status).not.toHaveProperty('api_key');
     expect(JSON.stringify(status)).not.toContain(FAKE_KEY);
   });
 

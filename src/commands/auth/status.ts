@@ -6,12 +6,6 @@ import { AuthError, WorkspaceMismatchError } from '../../core/errors.js';
 import { output, outputError } from '../../core/output.js';
 import type { GlobalOptions } from '../../core/types.js';
 
-function maskApiKey(apiKey: string): string {
-  return apiKey.length > 16
-    ? `${apiKey.slice(0, 8)}…${apiKey.slice(-4)}`
-    : '***';
-}
-
 export async function buildAuthStatus(opts: {
   apiKey?: string;
   profile?: string;
@@ -36,7 +30,6 @@ export async function buildAuthStatus(opts: {
     throw error;
   }
 
-  const masked = maskApiKey(credentials.apiKey);
   const client = new InstantlyClient({ apiKey: credentials.apiKey });
 
   try {
@@ -48,7 +41,6 @@ export async function buildAuthStatus(opts: {
         authenticated: false,
         source: credentials.source,
         profile,
-        api_key: masked,
         workspace_id: workspace.id,
         workspace_name: workspace.name,
         bound_workspace_id: bound.id,
@@ -63,7 +55,6 @@ export async function buildAuthStatus(opts: {
       authenticated: true,
       source: credentials.source,
       profile,
-      api_key: masked,
       workspace_id: workspace.id,
       workspace_name: workspace.name,
       workspace: {
@@ -79,7 +70,6 @@ export async function buildAuthStatus(opts: {
       authenticated: false,
       source: credentials.source,
       profile: displayProfileSlug(credentials),
-      api_key: masked,
       workspace_id: bound?.id ?? null,
       workspace_name: bound?.name ?? null,
       error: `Key found but verification failed: ${msg}`,

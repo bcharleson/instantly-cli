@@ -132,7 +132,7 @@ instantly profile whoami
 instantly profile remove acme
 ```
 
-`instantly status` / `whoami` / `profile list` always print `profile` (slug or `default`), `workspace_id`, `workspace_name`, and `source`. Confirm this bound pair before campaigns, health, or writes. Agencies should `login --profile <client>` for every key, including the house org.
+`instantly status` / `whoami` / `profile list` always print `profile` (slug or `default`), `workspace_id`, `workspace_name`, and `source`. They never print the API key. Confirm this bound pair before campaigns, health, or writes. Agencies should `login --profile <client>` for every key, including the house org.
 
 Every existing command group (campaigns, leads, accounts, email, analytics, health, webhooks, oauth, …) uses this same resolver. There is no second, profile-only API.
 

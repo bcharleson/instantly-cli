@@ -121,7 +121,27 @@ describe('agency CLI (real program, two profiles)', () => {
     expect(payload.workspace_name).toBe('Default');
     expect(payload.source).toContain('stored config');
     expect(JSON.stringify(payload)).not.toContain('default-key');
+    expect(payload).not.toHaveProperty('api_key');
     expect(fetches.every((call) => call.key !== 'client-b-key')).toBe(true);
+  });
+
+  it('status and whoami omit api_key and do not print a key prefix', async () => {
+    await run(['status']);
+    const status = JSON.parse(stdout.join('\n'));
+    expect(status).not.toHaveProperty('api_key');
+    expect(JSON.stringify(status)).not.toMatch(/default-ke|client-a-ke|client-b-ke/);
+
+    stdout.length = 0;
+    await run(['whoami']);
+    const whoami = JSON.parse(stdout.join('\n'));
+    expect(whoami).not.toHaveProperty('api_key');
+    expect(JSON.stringify(whoami)).not.toMatch(/default-ke|client-a-ke|client-b-ke/);
+
+    stdout.length = 0;
+    await run(['profile', 'whoami']);
+    const profileWhoami = JSON.parse(stdout.join('\n'));
+    expect(profileWhoami).not.toHaveProperty('api_key');
+    expect(JSON.stringify(profileWhoami)).not.toMatch(/default-ke|client-a-ke|client-b-ke/);
   });
 
   it('profile list returns profile, workspace_id, workspace_name, source and never the raw key', async () => {
@@ -177,10 +197,19 @@ describe('agency CLI (real program, two profiles)', () => {
     ]);
     expect(process.exitCode).toBe(1);
     expect(stderr.join('\n')).toMatch(/does not match the live workspace/);
+    expect(stderr.join('\n')).toMatch(/WORKSPACE_MISMATCH/);
     expect(fetches.some((call) => call.url.includes('/activate'))).toBe(false);
     expect(fetches.some((call) => call.url.includes('/campaigns/') && call.method === 'POST')).toBe(
       false,
     );
+  });
+
+  it('default key write without --workspace still reaches the HTTP handler', async () => {
+    fetches.length = 0;
+    process.exitCode = 0;
+    await run(['campaigns', 'activate', '33333333-3333-4333-8333-333333333333']);
+    expect(process.exitCode ?? 0).toBe(0);
+    expect(fetches.some((call) => call.url.includes('/activate'))).toBe(true);
   });
 
   it('write with the wrong --workspace aborts before the mutation', async () => {

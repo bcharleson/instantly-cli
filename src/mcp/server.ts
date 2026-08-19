@@ -51,7 +51,7 @@ export async function startMcpServer(): Promise<void> {
 
   const server = new McpServer({
     name: 'instantly',
-    version: '0.1.0',
+    version: '0.1.22',
   });
 
   for (const cmdDef of allCommands) {
