@@ -2,21 +2,43 @@ import { Command } from 'commander';
 import { join } from 'node:path';
 import { deleteConfig, getConfigPath } from '../../core/config.js';
 import { loadDotEnv } from '../../core/auth.js';
+import { deleteProfile, getProfilePath, loadProfile } from '../../core/profiles.js';
 import { output, outputError } from '../../core/output.js';
 import type { GlobalOptions } from '../../core/types.js';
 
 export function registerLogoutCommand(program: Command): void {
   program
     .command('logout')
-    .description('Remove stored API key and configuration')
-    .action(async () => {
+    .description(
+      'Remove stored default config, or a single --profile file. Never deletes every profile at once.',
+    )
+    .option('--profile <slug>', 'Remove only ~/.instantly/profiles/<slug>.json (does not touch config.json)')
+    .action(async (opts: { profile?: string }) => {
       const globalOpts = program.opts() as GlobalOptions;
+      const slug = opts.profile || globalOpts.profile;
 
       try {
+        if (slug) {
+          const existed = Boolean(await loadProfile(slug));
+          const removed = await deleteProfile(slug);
+          output(
+            {
+              status: removed ? 'profile_logged_out' : 'not_found',
+              profile: slug,
+              existed,
+              path: getProfilePath(slug),
+              default_config_written: false,
+            },
+            globalOpts,
+          );
+          if (!removed) {
+            process.exitCode = 1;
+          }
+          return;
+        }
+
         await deleteConfig();
 
-        // Check whether a local .env file still holds INSTANTLY_API_KEY so the
-        // user knows they are not fully unauthenticated after running logout.
         const dotEnv = await loadDotEnv(process.cwd());
         const dotEnvHasKey = Boolean(dotEnv['INSTANTLY_API_KEY']);
         const dotEnvPath = join(process.cwd(), '.env');

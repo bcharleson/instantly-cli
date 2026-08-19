@@ -133,6 +133,22 @@ instantly profile remove acme
 
 `instantly status` / `whoami` always prints credential source, profile slug (if any), workspace id, and workspace name.
 
+Every existing command group (campaigns, leads, accounts, email, analytics, health, webhooks, oauth, …) uses this same resolver. There is no second, profile-only API.
+
+After merge, dogfood with fake slugs `client-a` / `client-b` (your real keys stay local):
+
+```bash
+instantly status                                          # default: one workspace, profile null
+instantly login --profile client-a --api-key "$CLIENT_A_KEY"
+# confirm ~/.instantly/config.json is unchanged
+instantly --profile client-a status                       # prints bound workspace id + name
+instantly --profile client-a campaigns list
+instantly --profile client-a health
+instantly --profile client-a --workspace "$WRONG_UUID" campaigns activate "$CAMPAIGN_ID"
+# → abort; no mutation
+# two files in ~/.instantly/profiles; never one command looping both
+```
+
 ---
 
 ## Quick Start

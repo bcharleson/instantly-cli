@@ -33,6 +33,34 @@ instantly campaigns list --api-key "your-api-key-here"
 
 API keys are generated from: https://app.instantly.ai/app/settings/integrations
 
+## Multi-workspace profiles (agency / agents)
+
+Default mode is still **one workspace** (`INSTANTLY_API_KEY` or `instantly login`). Profiles are opt-in and isolate client keys.
+
+**Hard rails:** one process, one workspace. Never loop profiles. Never pass comma-separated keys. There is no `--all-profiles`.
+
+```bash
+# Bind a client workspace (does not write ~/.instantly/config.json)
+instantly login --profile client-a --api-key "$CLIENT_A_KEY"
+instantly login --profile client-b --api-key "$CLIENT_B_KEY"
+
+# Every command group works on that one workspace
+export INSTANTLY_PROFILE=client-a
+instantly status
+instantly campaigns list
+instantly health
+instantly accounts list
+instantly email list --email-type reply
+
+# Writes must confirm the bound workspace UUID
+instantly --profile client-a --workspace "$CLIENT_A_WORKSPACE_ID" \
+  campaigns activate "$CAMPAIGN_ID"
+```
+
+If live `workspace.id` ≠ the profile's bound id, the command aborts. A leftover cwd `.env` `INSTANTLY_API_KEY` does not override `--profile` / `INSTANTLY_PROFILE`.
+
+MCP: start one server per workspace (`INSTANTLY_PROFILE=client-a`). Mutating tools require `workspace_id` matching the bound id.
+
 ## Output Format
 
 All commands output **JSON to stdout** by default — ready for parsing:
@@ -622,3 +650,6 @@ instantly leads bulk-add --campaign-id <id> --leads '[{
 11. **Use `campaigns search-by-contact`** to find which campaigns a lead is in — accepts email as positional arg
 12. **Use `--to` on email reply** and `--expect-from` on email forward to validate recipients before sending
 13. **Use `bulk-activate` / `bulk-pause`** to manage multiple campaigns at once
+14. **One process, one workspace** — set `INSTANTLY_PROFILE` or `--profile` for a single client; do not iterate `~/.instantly/profiles`
+15. **Writes under a profile require `--workspace`** matching the bound UUID (campaign activate/pause, leads bulk-add, email reply, oauth connect, and other mutations)
+16. **`instantly status` / `health`** report credential source, profile slug, and workspace id/name — check these before mutating
