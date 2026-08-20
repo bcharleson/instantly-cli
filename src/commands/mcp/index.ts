@@ -34,7 +34,12 @@ MCP Configuration:
         }
       }
     }
-  }`)
+  }
+
+  Agency: name every client as a profile (login --profile <client>).
+  set INSTANTLY_PROFILE=<slug>. Every tool accepts profile.
+  Mutating tools require profile + workspace_id matching the bound pair.
+  Call status first (slug, workspace_id, workspace_name). One process, one profile.`)
     .action(async () => {
       process.on('SIGINT', () => process.exit(0));
       process.on('SIGTERM', () => process.exit(0));

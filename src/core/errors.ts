@@ -30,6 +30,13 @@ export class ValidationError extends InstantlyError {
   }
 }
 
+export class WorkspaceMismatchError extends InstantlyError {
+  constructor(message: string) {
+    super(message, 'WORKSPACE_MISMATCH', 409);
+    this.name = 'WorkspaceMismatchError';
+  }
+}
+
 export class RateLimitError extends InstantlyError {
   public retryAfter?: number;
 

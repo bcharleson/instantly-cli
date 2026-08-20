@@ -2,6 +2,8 @@
 
 > This file helps AI agents (GPT, Claude, Gemini, open-source models, etc.) install, authenticate, and use the Instantly CLI to manage cold email campaigns, leads, email accounts, and more via the Instantly.ai platform.
 
+> Compact rails for Claude/Cursor skills: see [`SKILL.md`](./SKILL.md).
+
 ## Quick Start
 
 ```bash
@@ -19,10 +21,12 @@ instantly campaigns list
 
 ## Authentication
 
-Set your API key via environment variable — no interactive login needed:
+`--profile` is **not** required for old single-key users. Set your API key via environment variable:
 
 ```bash
 export INSTANTLY_API_KEY="your-api-key-here"
+instantly status
+# confirm profile ("default"), workspace_id, workspace_name, then continue
 ```
 
 Or pass it per-command:
@@ -31,7 +35,35 @@ Or pass it per-command:
 instantly campaigns list --api-key "your-api-key-here"
 ```
 
-API keys are generated from: https://app.instantly.ai/app/settings/integrations
+`instantly login` stamps `{ api_key, workspace_id, workspace_name }` onto `~/.instantly/config.json`. API keys are generated from: https://app.instantly.ai/app/settings/integrations
+
+## Multi-workspace profiles (agency / agents)
+
+**Name every client as a profile**, including the house org. The slug is the client name. Agencies should `login --profile <client>` for every key. Confirm `status` / `whoami` (`profile`, `workspace_id`, `workspace_name`, `source`) before campaigns, health, or writes. One process, one profile.
+
+**Hard rails:** one process, one profile. Never loop profiles. Never pass comma-separated keys. There is no `--all-profiles`.
+
+```bash
+# Bind a client workspace (does not write ~/.instantly/config.json)
+instantly login --profile client-a --api-key "$CLIENT_A_KEY"
+instantly login --profile client-b --api-key "$CLIENT_B_KEY"
+
+# Confirm the bound pair first
+export INSTANTLY_PROFILE=client-a
+instantly status
+instantly campaigns list
+instantly health
+instantly accounts list
+instantly email list --email-type reply
+
+# Writes must confirm the bound workspace UUID
+instantly --profile client-a --workspace "$CLIENT_A_WORKSPACE_ID" \
+  campaigns activate "$CAMPAIGN_ID"
+```
+
+Reads and writes under `--profile` re-fetch the live workspace. If live `workspace.id` ≠ the bound id, the command aborts. Writes also require `--workspace` matching the bound id. When `--workspace` is passed on any path (default or profile), live id must match or the command aborts. Omitted on the default single-key path: no extra flag required. A leftover cwd `.env` `INSTANTLY_API_KEY` does not override `--profile` / `INSTANTLY_PROFILE`.
+
+MCP: start one server per profile (`INSTANTLY_PROFILE=client-a`). Every tool accepts `profile`. Mutating tools require `profile` + `workspace_id` matching the bound pair.
 
 ## Output Format
 
@@ -556,14 +588,14 @@ instantly campaigns list --limit 10 --starting-after "<last-id>"
 
 ## MCP Server (for Claude, Cursor, VS Code)
 
-The CLI also includes a built-in MCP server exposing all 156 commands as tools:
+The CLI also includes a built-in MCP server exposing all 156 commands as tools. One MCP server process per profile. Every tool description says pass `profile` for agency. Mutating tools require `profile` + `workspace_id` matching the bound pair. Call `status` first.
 
 ```bash
 # Start the MCP server
 instantly mcp
 ```
 
-MCP config for your AI assistant:
+Default (one workspace):
 ```json
 {
   "mcpServers": {
@@ -576,36 +608,32 @@ MCP config for your AI assistant:
 }
 ```
 
+Agency: set `INSTANTLY_PROFILE=client-a` instead of a key. Mutating tools require `profile` + `workspace_id` matching the bound pair. There is no all-profiles MCP tool.
+
 ## Email Body Formatting
 
-Instantly renders email bodies as HTML. Plain text with `\n` newlines will render as a single unbroken block in recipients' email clients.
+Instantly delivers HTML. **Pass readable copy with real line breaks.** The CLI converts plain-text newlines so you do not hand-write tags. Do not send a run-on string. Existing HTML is left unchanged. `--text-only` skips conversion. Same Instantly `body` key — do not invent another field. Template variables `{{first_name}}` and spin syntax `{{RANDOM|a|b}}` pass through.
 
-**The CLI auto-converts plain text to HTML** in `email reply`, `email forward`, and `leads bulk-add` (for custom_variables with `body` in the key name). But if you're building bodies yourself, follow these rules:
-
-- Each paragraph → `<div>paragraph text</div>`
-- Blank line → `<div><br /></div>`
-- Never use raw `\n` newlines in email body strings
-- Template variables `{{first_name}}` and spin syntax `{{RANDOM|a|b}}` pass through untouched
+Applies to `campaigns create` / `update`, `subsequences create`, `email reply`, `email forward`, and `leads bulk-add` custom_variables whose key contains `body`.
 
 ```bash
-# The CLI auto-converts this plain text in --body-text:
+# Readable copy with real line breaks — CLI converts
 instantly email reply --reply-to-uuid <id> --eaccount "me@domain.com" \
   --subject "Re: Hello" --body-text "Hi Sarah,
 
 Worth it?
 
 Mark"
-# → Automatically generates HTML: <div>Hi Sarah,</div><div><br /></div><div>Worth it?</div>...
 
-# For leads bulk-add, plain text in body custom_variables is auto-converted:
 instantly leads bulk-add --campaign-id <id> --leads '[{
   "email": "lead@example.com",
   "custom_variables": {
     "email_1_body": "Hi {{first_name}},\n\nWorth a quick chat?\n\nMark"
   }
 }]'
-# → email_1_body auto-converted to HTML for proper rendering
 ```
+
+delay on step N waits before step N+1. First email does not wait. Pass delay_unit. Instantly uses only sequences[0]. Do not set pre_delay on a normal campaign. email_gap is a rate limit, not the step gap. Read `sequence_timeline` after create.
 
 ## Tips for AI Agents
 
@@ -622,3 +650,6 @@ instantly leads bulk-add --campaign-id <id> --leads '[{
 11. **Use `campaigns search-by-contact`** to find which campaigns a lead is in — accepts email as positional arg
 12. **Use `--to` on email reply** and `--expect-from` on email forward to validate recipients before sending
 13. **Use `bulk-activate` / `bulk-pause`** to manage multiple campaigns at once
+14. **Name every client as a profile** — agencies `login --profile <client>` for every key, including the house org. One process, one profile; do not iterate `~/.instantly/profiles`
+15. **Confirm `status` / `whoami` first** — `profile` (slug or `default`), `workspace_id`, `workspace_name`, `source` — before campaigns, health, or writes. Status never prints the API key.
+16. **Writes under a profile require `--workspace`** matching the bound UUID (campaign activate/pause, leads bulk-add, email reply, oauth connect, and other mutations)

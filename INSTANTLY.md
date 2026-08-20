@@ -6,7 +6,13 @@
 
 ## Authentication
 
-All tools require an `INSTANTLY_API_KEY` environment variable. Users can generate API keys from their Instantly workspace settings.
+Default (one workspace): `--api-key`, or `INSTANTLY_API_KEY`, or cwd `.env` `INSTANTLY_API_KEY`, or `~/.instantly/config.json` from `instantly login`. Default login stamps `workspace_id` + `workspace_name` onto config.json. `--profile` is not required for old single-key users. `status` / `whoami` print `profile` (`default` or slug), `workspace_id`, `workspace_name`, `source`.
+
+Agency: name every client as a profile (`login --profile <client>`), including the house org. `--profile <slug>` or `INSTANTLY_PROFILE=<slug>` loads `~/.instantly/profiles/<slug>.json`. `login --profile` does not write `config.json`. One process, one profile — no all-profiles tool. When a profile is selected, it wins over a leftover cwd `.env` key.
+
+Every tool description says pass `profile` for agency. Mutating tools require `profile` + `workspace_id` matching the bound pair. When `workspace_id` / `--workspace` is passed on the default single-key path, it must match the live workspace (omitted = no extra flag). Start one MCP server per profile (`INSTANTLY_PROFILE=client-a`). Confirm status first.
+
+API keys are generated from Instantly workspace settings.
 
 ## Tool Categories (156 tools total)
 
@@ -193,26 +199,9 @@ Manage Done-For-You email account orders:
 
 ## Email Body Formatting — CRITICAL
 
-Instantly renders email bodies as HTML. Plain text with `\n` newlines will render as a single unbroken block in recipients' email clients.
+Instantly delivers HTML. **Pass readable copy with real line breaks.** The CLI converts plain-text newlines to HTML on `campaigns_create` / `campaigns_update`, `subsequences_create`, `email_reply`, `email_forward`, and `leads_bulk_add` (custom_variables whose key contains `body`). Do not send a run-on string. Do not hand-write tags unless the body is already HTML. Existing HTML is left unchanged. `text_only` skips conversion. Template variables and spin syntax pass through.
 
-**The CLI auto-converts plain text to HTML** in `email_reply`, `email_forward`, and `leads_bulk_add` (for custom_variables containing `body` in the key name). However, you should still understand the format:
-
-**HTML formatting rules:**
-- Each paragraph → `<div>paragraph text</div>`
-- Blank line between paragraphs → `<div><br /></div>`
-- Never use raw `\n` newlines in email body strings sent to the API
-- Template variables like `{{first_name}}` and spin syntax `{{RANDOM|a|b}}` pass through untouched
-
-**Example:**
-```
-# Wrong — renders as one block
-body = "Hi Sarah,\n\nWorth it?\n\nMark"
-
-# Correct — renders with proper line breaks
-body = "<div>Hi Sarah,</div><div><br /></div><div>Worth it?</div><div><br /></div><div>Mark</div>"
-```
-
-When using `leads_bulk_add` with `custom_variables` for email bodies (e.g., `email_1_body`, `email_2_body`, `email_3_body`), the CLI auto-converts plain text to HTML. If you're calling the API directly, always pass HTML strings.
+delay on step N waits before step N+1. First email does not wait. Pass delay_unit (omitted unit becomes days). Instantly uses only sequences[0]. Read `sequence_timeline` after create. `pre_delay` is subsequence-only. `email_gap` is a rate limit, not the step gap.
 
 ## Key Identifiers
 

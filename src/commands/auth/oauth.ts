@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { InstantlyClient } from '../../core/client.js';
-import { resolveApiKey } from '../../core/auth.js';
+import { createCommandContext } from '../../core/command-context.js';
 import { output, outputError } from '../../core/output.js';
 import type { GlobalOptions } from '../../core/types.js';
 
@@ -62,8 +62,12 @@ export function registerOAuthCommand(program: Command): void {
       const globalOpts = program.opts() as GlobalOptions;
 
       try {
-        const apiKey = await resolveApiKey(globalOpts.apiKey);
-        const client = new InstantlyClient({ apiKey });
+        const { client } = await createCommandContext({
+          apiKey: globalOpts.apiKey,
+          profile: globalOpts.profile,
+          workspace: globalOpts.workspace,
+          mutating: true,
+        });
         const isTTY = !!process.stdin.isTTY;
 
         let provider = providerArg;
@@ -171,8 +175,12 @@ export function registerOAuthCommand(program: Command): void {
       const globalOpts = program.opts() as GlobalOptions;
 
       try {
-        const apiKey = await resolveApiKey(globalOpts.apiKey);
-        const client = new InstantlyClient({ apiKey });
+        const { client } = await createCommandContext({
+          apiKey: globalOpts.apiKey,
+          profile: globalOpts.profile,
+          workspace: globalOpts.workspace,
+          mutating: false,
+        });
 
         const result = await client.get(`/oauth/session/status/${sessionId}`);
         output(result, globalOpts);

@@ -4,6 +4,7 @@ import {
   AuthError,
   NotFoundError,
   ValidationError,
+  WorkspaceMismatchError,
   RateLimitError,
   ServerError,
   formatError,
@@ -34,6 +35,13 @@ describe('Error classes', () => {
     const err = new ValidationError('bad input');
     expect(err.code).toBe('VALIDATION_ERROR');
     expect(err.statusCode).toBe(422);
+  });
+
+  it('WorkspaceMismatchError defaults to 409', () => {
+    const err = new WorkspaceMismatchError('bound workspace mismatch');
+    expect(err.code).toBe('WORKSPACE_MISMATCH');
+    expect(err.statusCode).toBe(409);
+    expect(err.name).toBe('WorkspaceMismatchError');
   });
 
   it('RateLimitError tracks retryAfter', () => {

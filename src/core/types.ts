@@ -49,6 +49,13 @@ export interface CommandDefinition<TInput extends z.ZodObject<any> = z.ZodObject
 
   /** The handler function */
   handler: (input: z.infer<TInput>, client: InstantlyClient) => Promise<unknown>;
+
+  /**
+   * When true, profiled invocations require `--workspace` / `workspace_id`
+   * matching the bound profile. When omitted, inferred from the HTTP method
+   * (writes are mutating; known read-only POSTs are not).
+   */
+  mutating?: boolean;
 }
 
 export interface InstantlyClient {
@@ -72,15 +79,28 @@ export interface PaginatedResponse<T> {
 
 export interface InstantlyConfig {
   api_key: string;
+  workspace_id?: string;
+  workspace_name?: string;
+  /** Legacy nested shape; prefer workspace_id / workspace_name. */
   workspace?: {
     id: string;
     name: string;
   };
 }
 
+/** Named workspace profile stored at ~/.instantly/profiles/<slug>.json */
+export interface InstantlyProfile {
+  api_key: string;
+  workspace_id: string;
+  workspace_name: string;
+}
+
 export interface GlobalOptions {
   apiKey?: string;
+  profile?: string;
+  workspace?: string;
   output?: 'json' | 'pretty' | 'table';
   quiet?: boolean;
   fields?: string;
+  pretty?: boolean;
 }

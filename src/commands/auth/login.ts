@@ -1,21 +1,42 @@
 import { Command } from 'commander';
 import { InstantlyClient } from '../../core/client.js';
-import { saveConfig } from '../../core/config.js';
+import { resolveProvidedApiKey } from '../../core/auth.js';
 import { output, outputError } from '../../core/output.js';
+import { persistLoginSession, defaultConfigHintPath, defaultProfileHintPath } from '../../core/login-store.js';
+import { fetchLiveWorkspace } from '../../core/workspace.js';
 import type { GlobalOptions } from '../../core/types.js';
+
+async function promptForApiKey(): Promise<string | undefined> {
+  const [major] = process.versions.node.split('.').map(Number);
+  if (major < 20) {
+    throw new Error('Interactive login requires Node.js 20+. Use --api-key or set INSTANTLY_API_KEY instead.');
+  }
+  const { password } = await import('@inquirer/prompts');
+  return password({
+    message: 'Enter your API key:',
+    mask: '*',
+  });
+}
 
 export function registerLoginCommand(program: Command): void {
   program
     .command('login')
-    .description('Authenticate with your Instantly API key')
+    .description(
+      'Authenticate and bind this API key to the live workspace id and name. ' +
+        'Default writes ~/.instantly/config.json. --profile <slug> writes only ~/.instantly/profiles/<slug>.json.',
+    )
     .option('--api-key <key>', 'API key (skips interactive prompt)')
+    .option(
+      '--profile <slug>',
+      'Save as a named workspace profile under ~/.instantly/profiles/<slug>.json (does not write config.json)',
+    )
     .action(async (opts) => {
       const globalOpts = program.opts() as GlobalOptions;
+      const profileSlug = (opts.profile || globalOpts.profile) as string | undefined;
 
       try {
-        let apiKey = opts.apiKey || process.env.INSTANTLY_API_KEY;
+        let apiKey = resolveProvidedApiKey(opts.apiKey, globalOpts.apiKey);
 
-        // Interactive prompt if no key provided and we're in a TTY
         if (!apiKey) {
           if (!process.stdin.isTTY) {
             outputError(
@@ -26,20 +47,7 @@ export function registerLoginCommand(program: Command): void {
           }
 
           console.log('Get your API key from: https://app.instantly.ai/app/settings/integrations\n');
-
-          const [major] = process.versions.node.split('.').map(Number);
-          if (major < 20) {
-            outputError(
-              new Error('Interactive login requires Node.js 20+. Use --api-key or set INSTANTLY_API_KEY instead.'),
-              globalOpts,
-            );
-            return;
-          }
-          const { password } = await import('@inquirer/prompts');
-          apiKey = await password({
-            message: 'Enter your API key:',
-            mask: '*',
-          });
+          apiKey = await promptForApiKey();
         }
 
         if (!apiKey) {
@@ -47,41 +55,48 @@ export function registerLoginCommand(program: Command): void {
           return;
         }
 
-        // Validate by making a test request
         const client = new InstantlyClient({ apiKey });
 
         if (globalOpts.output === 'pretty' || process.stdin.isTTY) {
           console.log('Validating API key...');
         }
 
-        // Try to get workspace info to validate the key
-        let workspaceInfo: any;
-        try {
-          workspaceInfo = await client.get('/workspace');
-        } catch {
-          // Some scopes might not have workspace access, just save the key
-          workspaceInfo = null;
-        }
+        // Bind the live workspace to this key (default config or named profile).
+        const workspaceInfo = await fetchLiveWorkspace(client);
 
-        await saveConfig({
-          api_key: apiKey,
-          workspace: workspaceInfo
-            ? { id: workspaceInfo.id, name: workspaceInfo.name }
-            : undefined,
+        const persisted = await persistLoginSession({
+          apiKey,
+          workspace: workspaceInfo,
+          profileSlug,
         });
+
+        const hintPath = profileSlug
+          ? defaultProfileHintPath(profileSlug)
+          : defaultConfigHintPath();
 
         const result = {
           status: 'authenticated',
+          profile: profileSlug ?? 'default',
           workspace: workspaceInfo?.name ?? 'unknown',
-          config_path: '~/.instantly/config.json',
+          workspace_id: workspaceInfo?.id ?? null,
+          workspace_name: workspaceInfo?.name ?? null,
+          config_path: profileSlug ? hintPath : defaultConfigHintPath(),
+          stored_at: persisted.stored_at,
         };
 
         if (globalOpts.output === 'pretty' || process.stdin.isTTY) {
           console.log(`\nAuthenticated successfully!`);
+          console.log(`Profile: ${profileSlug ?? 'default'}`);
           if (workspaceInfo?.name) {
             console.log(`Workspace: ${workspaceInfo.name}`);
           }
-          console.log('Config saved to ~/.instantly/config.json');
+          if (workspaceInfo?.id) {
+            console.log(`Workspace ID: ${workspaceInfo.id}`);
+          }
+          console.log(`Config saved to ${hintPath}`);
+          if (profileSlug) {
+            console.log('Default ~/.instantly/config.json was not modified.');
+          }
         } else {
           output(result, globalOpts);
         }
